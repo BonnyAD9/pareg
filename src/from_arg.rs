@@ -12,10 +12,14 @@ use std::{
 
 use crate::err::{ArgError, Result};
 
+/// Represents a trait similar to [`FromStr`], in addition it may return type
+/// that references the original string slice. If your type already implements
+/// [`FromStr`], you can just implement [`FromArgStr`].
 pub trait FromArg<'a>: Sized {
     fn from_arg(arg: &'a str) -> Result<Self>;
 }
 
+/// Default implementation for [`FromArg`] for types that implement [`FromStr`]
 pub trait FromArgStr: FromStr {}
 
 macro_rules! impl_all {

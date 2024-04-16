@@ -7,8 +7,18 @@ pub type Result<'a, T> = std::result::Result<T, ArgError<'a>>;
 /// Errors thrown when parsing arguments.
 #[derive(Debug, Error)]
 pub enum ArgError<'a> {
-    #[error("Unknown argument {0}.")]
+    /// There was an unknown argument. The string is the exact value of the
+    /// argument that is not known.
+    ///
+    /// Prints the message: `Unknown argument '{0}'.`
+    #[error("Unknown argument '{0}'.")]
     UnknownArgument(Cow<'a, str>),
+    /// Expected another argument but there were no more arguments. The string
+    /// is the last argument after which the next argument was expected.
+    ///
+    /// Prints the message:
+    /// - `Expected next argument.` if the string is [`None`]
+    /// - `Expected next argument after '{0}'` if the string is [`Some`]
     #[error(
         "Expected next argument{}.",
         if let Some(ref v) = .0 {
@@ -18,6 +28,13 @@ pub enum ArgError<'a> {
         }
     )]
     NoMoreArguments(Option<Cow<'a, str>>),
+    /// Failed to parse a string value into a type. `typ` is the name of the
+    /// type, `value` is the string that failed to parse and `msg` may
+    /// optionally contain more information.
+    ///
+    /// Prints the message:
+    /// - `Failed to parse '{value}' into {typ}.` if `msg` is [`None`]
+    /// - `Failed to parse '{value}' into {typ}: {msg}` if `msg` is [`Some`]
     #[error(
         "Failed to parse '{value}' into '{typ}'{}",
         if let Some(msg) = .msg {
@@ -31,11 +48,16 @@ pub enum ArgError<'a> {
         value: Cow<'a, str>,
         msg: Option<Cow<'a, str>>,
     },
+    /// There was no value in a key-value pair. The string is the value of the
+    /// argument in which there was no value.
+    ///
+    /// Prints the message: `Expected value, but there is no value in '{0}'.`
     #[error("Expected value, but there is no value in '{0}'.")]
     NoValue(Cow<'a, str>),
 }
 
 impl<'a> ArgError<'a> {
+    /// Converts the error into owned error by copying all borrowed strings.
     pub fn into_owned(self) -> ArgError<'static> {
         match self {
             Self::UnknownArgument(a) => {
