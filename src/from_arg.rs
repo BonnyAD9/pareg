@@ -10,55 +10,18 @@ use std::{
     str::FromStr,
 };
 
-use thiserror::Error;
+use crate::err::{ArgError, Result};
 
-type Result<T> = std::result::Result<T, ArgError>;
-
-#[derive(Debug, Error)]
-enum ArgError {
-    #[error("Expected next argument")]
-    NoMoreArguments,
-    #[error(
-        "Failed to parse '{value}' into '{typ}'{}",
-        if let Some(msg) = .msg {
-            format!(": {msg}")
-        } else {
-            "".to_owned()
-        }
-    )]
-    FailedToParse {
-        typ: &'static str,
-        value: String,
-        msg: Option<String>,
-    },
-}
-
-trait ArgRefIterator<'a> {
-    fn next_arg<T>(&mut self) -> Result<T>
-    where
-        T: FromArg<'a>;
-}
-
-trait FromArg<'a>: Sized {
+pub trait FromArg<'a>: Sized {
     fn from_arg(arg: &'a str) -> Result<Self>;
 }
 
-trait FromArgStr: FromStr {}
+pub trait FromArgStr: FromStr {}
 
-impl<'a, I> ArgRefIterator<'a> for I
-where
-    I: Iterator<Item = &'a str>,
-{
-    fn next_arg<T>(&mut self) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        if let Some(a) = self.next() {
-            T::from_arg(a)
-        } else {
-            Err(ArgError::NoMoreArguments)
-        }
-    }
+macro_rules! impl_all {
+    ($tr:ty: $($t:ty),* $(,)? => $body:tt) => {
+        $(impl $tr for $t $body)*
+    };
 }
 
 impl<'a, T> FromArg<'a> for T
@@ -73,12 +36,6 @@ where
             msg: Some(format!("{e}")),
         })
     }
-}
-
-macro_rules! impl_all {
-    ($tr:ty: $($t:ty),* $(,)? => $body:tt) => {
-        $(impl $tr for $t $body)*
-    };
 }
 
 impl_all! { FromArgStr:
@@ -109,5 +66,18 @@ impl<'a> FromArg<'a> for &'a OsStr {
 impl<'a> FromArg<'a> for Cow<'a, str> {
     fn from_arg(arg: &'a str) -> Result<Self> {
         Ok(arg.into())
+    }
+}
+
+impl<'a, T> FromArg<'a> for Option<T>
+where
+    T: FromArg<'a>,
+{
+    fn from_arg(arg: &'a str) -> Result<Self> {
+        if arg.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(T::from_arg(arg)?))
+        }
     }
 }
