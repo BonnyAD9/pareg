@@ -30,7 +30,7 @@ where
     T: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
-        return Err(ArgError::NoValue);
+        return Err(ArgError::NoValue(arg.into()));
     };
 
     Ok((k, T::from_arg(v)?))

@@ -4,7 +4,7 @@ use crate::{
 };
 
 trait ArgIterator<'a> {
-    fn next_arg<T>(&mut self) -> Result<T>
+    fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>;
 }
@@ -13,14 +13,14 @@ impl<'a, I> ArgIterator<'a> for I
 where
     I: Iterator<Item = &'a str>,
 {
-    fn next_arg<T>(&mut self) -> Result<T>
+    fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>,
     {
         if let Some(a) = self.next() {
             T::from_arg(a)
         } else {
-            Err(ArgError::NoMoreArguments)
+            Err(ArgError::NoMoreArguments(None))
         }
     }
 }

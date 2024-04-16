@@ -29,11 +29,11 @@ where
     T: FromArgStr,
     T::Err: Display,
 {
-    fn from_arg(arg: &'a str) -> Result<Self> {
+    fn from_arg(arg: &'a str) -> Result<'a, Self> {
         T::from_str(arg).map_err(|e| ArgError::FailedToParse {
             typ: type_name::<T>(),
-            value: arg.to_owned(),
-            msg: Some(format!("{e}")),
+            value: arg.into(),
+            msg: Some(format!("{e}").into()),
         })
     }
 }
