@@ -1,0 +1,12 @@
+[package]
+name = "pareg_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "1.0.58"
+proc-macro2 = "1.0.81"
+syn = "2.0.59"
+quote = "1.0.36"
