@@ -1,10 +1,21 @@
 use std::{
-    any::type_name, borrow::Cow, ffi::{OsStr, OsString}, fmt::Display, net::{
+    any::type_name,
+    borrow::Cow,
+    ffi::{OsStr, OsString},
+    fmt::Display,
+    net::{
         IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6,
-    }, path::{Path, PathBuf}, rc::Rc, str::FromStr, sync::Arc
+    },
+    path::{Path, PathBuf},
+    rc::Rc,
+    str::FromStr,
+    sync::Arc,
 };
 
-use crate::{err::{ArgError, Result}, impl_all};
+use crate::{
+    err::{ArgError, Result},
+    impl_all,
+};
 
 /// Represents a trait similar to [`FromStr`], in addition it may return type
 /// that references the original string slice. If your type already implements

@@ -17,7 +17,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 
     let mut res = TokenStream::new();
 
-    res.extend(input.variants.into_iter().map(|v| {
+    res.extend(input.variants.into_iter().flat_map(|v| {
         if !v.fields.is_empty() {
             panic!("Enum variants may not have any fields")
         }
@@ -26,7 +26,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
         let ident = v.ident;
         quote! { => Ok(Self::#ident), }.to_tokens(&mut res);
         res.into_iter()
-    }).flatten());
+    }));
 
     quote! {
         impl<'a> pareg::from_arg::FromArg<'a> for #ident {
@@ -44,5 +44,5 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
                 }
             }
         }
-    }.into()
+    }
 }

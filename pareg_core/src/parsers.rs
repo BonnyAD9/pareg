@@ -1,5 +1,7 @@
 use crate::{
-    arg_into::ArgInto, err::{ArgError, Result}, from_arg::FromArg
+    arg_into::ArgInto,
+    err::{ArgError, Result},
+    from_arg::FromArg,
 };
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
@@ -80,6 +82,9 @@ pub fn opt_bool_arg<'a>(
     }
 }
 
-pub fn parse_arg<'a, T>(arg: &'a str) -> Result<'a, T> where T: FromArg<'a> {
+pub fn parse_arg<'a, T>(arg: &'a str) -> Result<'a, T>
+where
+    T: FromArg<'a>,
+{
     arg.arg_into()
 }
