@@ -9,12 +9,25 @@ the future.)
 
 ## Example usage
 ```rust
+
 use crate::{err::Result, iter::ArgIterator, parsers::key_val_arg};
+
+// You can define enums, and have them automaticaly derive FromArg where each
+// enum variant will be parsed from case insensitive strings of the same name
+// (e.g. `"Auto"` will parse into `Auto`, `"always"` into `Always`, `"NEVER"`
+// into `Never`)
+#[derive(FromArg)]
+enum ColorMode {
+    Auto,
+    Always,
+    Never,
+}
 
 // create your struct that will hold the arguments
 struct Args<'a> {
     name: &'a str,
     count: usize,
+    colors: ColorMode,
 }
 
 impl<'a> Args<'a> {
@@ -24,14 +37,16 @@ impl<'a> Args<'a> {
         let mut res = Args {
             name: "pareg",
             count: 1,
+            colors: ColorMode::Auto,
         };
 
         while let Some(arg) = args.next() {
             match arg {
                 // when there is the argument `count`, parse the next value
-                "-c" | "--count" => res.name = args.next_arg()?,
-                a if a.starts_with("-c=") || a.starts_with("--count=") => {
-                    res.name = key_val_arg(a, '=')?.1;
+                "-c" | "--count" => res.count = args.next_arg()?,
+                a if a.starts_with("--color=") => {
+                    // This will accept
+                    res.colors = key_val_arg::<&str, _>(a, '=')?.1;
                 }
                 // if the argument is unknown, just set it as name
                 _ => res.name = arg,

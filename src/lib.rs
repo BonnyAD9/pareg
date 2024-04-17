@@ -1,11 +1,10 @@
 pub use pareg_core::*;
-pub use pareg_proc::FromArg;
+pub use pareg_proc as proc;
 
 #[cfg(test)]
 mod tests {
     use crate as pareg;
-    use crate::{FromArg, err::Result, iter::ArgIterator};
-    // use pareg_proc::FromArg;
+    use crate::{proc::FromArg, err::Result, iter::ArgIterator};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {

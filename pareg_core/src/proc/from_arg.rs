@@ -31,7 +31,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
     quote! {
         impl<'a> pareg::from_arg::FromArg<'a> for #ident {
             fn from_arg(arg: &'a str) -> pareg::err::Result<'a, Self> {
-                match arg.to_lowercase().as_str() {
+                match arg.trim().to_lowercase().as_str() {
                     #res
                     _ => Err(pareg::err::ArgError::FailedToParse {
                         typ: core::any::type_name::<Self>(),

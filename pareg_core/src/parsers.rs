@@ -7,33 +7,35 @@ use crate::{
 /// also parsed to the given type.
 ///
 /// In case that there is no `'='`, value is `None`.
-pub fn key_mval_arg<'a, T>(
+pub fn key_mval_arg<'a, K, V>(
     arg: &'a str,
     sep: char,
-) -> Result<(&'a str, Option<T>)>
+) -> Result<(K, Option<V>)>
 where
-    T: FromArg<'a>,
+    K: FromArg<'a>,
+    V: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
-        return Ok((arg, None));
+        return Ok((K::from_arg(arg)?, None));
     };
 
-    Ok((k, Some(T::from_arg(v)?)))
+    Ok((K::from_arg(k)?, Some(V::from_arg(v)?)))
 }
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
 /// also parsed to the given type.
 ///
 /// In case that there is no `'='`, returns [`ArgError::NoValue`].
-pub fn key_val_arg<'a, T>(arg: &'a str, sep: char) -> Result<(&'a str, T)>
+pub fn key_val_arg<'a, K, V>(arg: &'a str, sep: char) -> Result<(K, V)>
 where
-    T: FromArg<'a>,
+    K: FromArg<'a>,
+    V: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
         return Err(ArgError::NoValue(arg.into()));
     };
 
-    Ok((k, T::from_arg(v)?))
+    Ok((K::from_arg(k)?, V::from_arg(v)?))
 }
 
 /// Parse bool value in a specific way. If the value of lowercase `arg` is
