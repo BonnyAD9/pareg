@@ -3,8 +3,7 @@ pub use pareg_proc as proc;
 
 #[cfg(test)]
 mod tests {
-    /*use crate as pareg;
-    use crate::{proc::FromArg, err::Result, iter::ArgIterator};
+    use crate::{self as pareg, err::Result, iter::ArgIterator, proc::FromArg};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {
@@ -24,5 +23,5 @@ mod tests {
         assert_eq!(ColorMode::Always, args.next_arg::<ColorMode>()?);
 
         Ok(())
-    }*/
+    }
 }
