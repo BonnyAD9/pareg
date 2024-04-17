@@ -22,9 +22,7 @@ impl_all!{
 }
 
 /// An iterator over arguments. It can directly parse the value it yelds.
-pub trait ArgIterator<'a>: Iterator<Item = Self::ArgItem> {
-    type ArgItem: ByRef<'a, str>;
-
+pub trait ArgIterator<'a>: Iterator where Self::Item: ByRef<'a, str> {
     fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>;
@@ -35,8 +33,6 @@ where
     I: Iterator,
     I::Item: ByRef<'a, str>
 {
-    type ArgItem = I::Item;
-
     fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>,
