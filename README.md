@@ -9,8 +9,12 @@ the future.)
 
 ## Example usage
 ```rust
-
-use crate::{err::Result, iter::ArgIterator, parsers::key_val_arg};
+use pareg::{
+    err::Result,
+    iter::{ArgIterator, ByRef},
+    parsers::key_val_arg,
+    proc::FromArg
+};
 
 // You can define enums, and have them automaticaly derive FromArg where each
 // enum variant will be parsed from case insensitive strings of the same name
@@ -32,7 +36,10 @@ struct Args<'a> {
 
 impl<'a> Args<'a> {
     // create function that takes the arguments as ArgIterator
-    pub fn parse<I>(mut args: I) -> Result<'a, Self> where I: ArgIterator<'a> {
+    pub fn parse<I>(mut args: I) -> Result<'a, Self>
+    where
+        I: ArgIterator<'a>,
+    {
         // initialize with default values
         let mut res = Args {
             name: "pareg",
@@ -41,11 +48,11 @@ impl<'a> Args<'a> {
         };
 
         while let Some(arg) = args.next() {
+            let arg = arg.by_ref();
             match arg {
                 // when there is the argument `count`, parse the next value
                 "-c" | "--count" => res.count = args.next_arg()?,
                 a if a.starts_with("--color=") => {
-                    // This will accept
                     res.colors = key_val_arg::<&str, _>(a, '=')?.1;
                 }
                 // if the argument is unknown, just set it as name
@@ -62,9 +69,8 @@ fn main() -> Result<'static, ()> {
     // you need to collect the arguments first so that you can refer to
     // them by reference
     let args: Vec<_> = std::env::args().collect();
-    // just pass in any iterator of `&str` and it will parse it as
-    // arguments
-    let args = Args::parse(args.iter().map(|a| a.as_str()))
+    // just pass in any iterator of string reference that has lifetime
+    let args = Args::parse(args.iter())
         // You need to map the error in this case to get the owned
         // version.
         .map_err(|e| e.into_owned())?;

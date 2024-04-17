@@ -1,16 +1,10 @@
 use std::{
-    any::type_name,
-    borrow::Cow,
-    ffi::{OsStr, OsString},
-    fmt::Display,
-    net::{
+    any::type_name, borrow::Cow, ffi::{OsStr, OsString}, fmt::Display, net::{
         IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6,
-    },
-    path::{Path, PathBuf},
-    str::FromStr,
+    }, path::{Path, PathBuf}, rc::Rc, str::FromStr, sync::Arc
 };
 
-use crate::err::{ArgError, Result};
+use crate::{err::{ArgError, Result}, impl_all};
 
 /// Represents a trait similar to [`FromStr`], in addition it may return type
 /// that references the original string slice. If your type already implements
@@ -21,12 +15,6 @@ pub trait FromArg<'a>: Sized {
 
 /// Default implementation for [`FromArg`] for types that implement [`FromStr`]
 pub trait FromArgStr: FromStr {}
-
-macro_rules! impl_all {
-    ($tr:ty: $($t:ty),* $(,)? => $body:tt) => {
-        $(impl $tr for $t $body)*
-    };
-}
 
 impl<'a, T> FromArg<'a> for T
 where
@@ -67,9 +55,11 @@ impl<'a> FromArg<'a> for &'a OsStr {
     }
 }
 
-impl<'a> FromArg<'a> for Cow<'a, str> {
-    fn from_arg(arg: &'a str) -> Result<Self> {
-        Ok(arg.into())
+impl_all! {
+    impl<'a> FromArg<'a>: Arc<str>, Rc<str>, Cow<'a, str> => {
+        fn from_arg(arg: &'a str) -> Result<'a, Self> {
+            Ok(arg.into())
+        }
     }
 }
 
