@@ -79,7 +79,11 @@
 //! ```
 
 pub use pareg_core::*;
-pub use pareg_proc as proc;
+
+/// Contains procedural macros such as the derive macro [`proc::FromArg`].
+pub mod proc {
+    pub use pareg_proc::FromArg;
+}
 
 #[cfg(test)]
 mod tests {

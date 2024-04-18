@@ -1,6 +1,6 @@
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
-use crate::impl_all;
+use crate::impl_all::impl_all;
 
 /// Similar to [`AsRef`], but this also gives the option to specify the lifetime
 /// of the returned reference.

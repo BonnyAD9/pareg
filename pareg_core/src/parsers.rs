@@ -141,6 +141,16 @@ pub fn opt_bool_arg<'a>(
     }
 }
 
+/// Parses the given argument using the [`FromArg`] trait.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::parse_arg;
+///
+/// assert_eq!("hello", parse_arg::<&str>("hello").unwrap());
+/// assert_eq!(10, parse_arg::<i32>("10").unwrap());
+/// assert_eq!(0.25, parse_arg::<f64>("0.25").unwrap());
+/// ```
 pub fn parse_arg<'a, T>(arg: &'a str) -> Result<'a, T>
 where
     T: FromArg<'a>,

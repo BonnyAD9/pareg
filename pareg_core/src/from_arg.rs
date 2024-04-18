@@ -14,7 +14,7 @@ use std::{
 
 use crate::{
     err::{ArgError, Result},
-    impl_all,
+    impl_all::impl_all,
 };
 
 /// Represents a trait similar to [`FromStr`], in addition it may return type
