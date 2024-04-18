@@ -1,5 +1,7 @@
 use crate::{
-    by_ref::ByRef, err::{ArgError, Result}, from_arg::FromArg
+    by_ref::ByRef,
+    err::{ArgError, Result},
+    from_arg::FromArg,
 };
 
 /// An iterator over arguments. It can directly parse the value it yelds.

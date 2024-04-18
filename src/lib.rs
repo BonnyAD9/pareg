@@ -78,13 +78,12 @@
 //! }
 //! ```
 
-
 pub use pareg_core::*;
 pub use pareg_proc as proc;
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as pareg, Result, ArgIterator, proc::FromArg};
+    use crate::{self as pareg, proc::FromArg, ArgIterator, Result};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {

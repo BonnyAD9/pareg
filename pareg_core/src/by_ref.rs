@@ -24,7 +24,11 @@ impl_all! {
     }
 }
 
-impl<'a, R, T> ByRef<Option<&'a T>> for Option<R> where R: ByRef<&'a T>, T: ?Sized {
+impl<'a, R, T> ByRef<Option<&'a T>> for Option<R>
+where
+    R: ByRef<&'a T>,
+    T: ?Sized,
+{
     fn by_ref(self) -> Option<&'a T> {
         self.map(|a| a.by_ref())
     }
