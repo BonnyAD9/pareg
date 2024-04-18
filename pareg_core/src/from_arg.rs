@@ -21,6 +21,16 @@ use crate::{
 /// that references the original string slice. If your type already implements
 /// [`FromStr`], you can just implement [`FromArgStr`].
 pub trait FromArg<'a>: Sized {
+    /// Parses the string into `Self`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::FromArg;
+    ///
+    /// assert_eq!("hello", <&str>::from_arg("hello").unwrap());
+    /// assert_eq!("hello".to_owned(), String::from_arg("hello").unwrap());
+    /// assert_eq!(5, i32::from_arg("5").unwrap());
+    /// ```
     fn from_arg(arg: &'a str) -> Result<Self>;
 }
 

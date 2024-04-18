@@ -1,4 +1,7 @@
 # pareg
+[![crates.io][version-badge]][crate]
+[![donwloads][downloads-badge]][releases]
+
 Helpful utilities for parsing command line arguments.
 
 Currently this crate doesn't contain any magic derive macro that would generate
@@ -7,79 +10,34 @@ and so there are only helper functions, traits and structures that help with
 the parsing in a more manual way. (But there may be such derive macro in
 the future.)
 
-## Example usage
-```rust
-use crate::{
-    self as pareg,
-    err::Result,
-    iter::{ArgIterator, ByRef},
-    parsers::key_val_arg,
-    proc::FromArg
-};
+## How to use it
+Documentation and examples are available at the [docs][docs].
 
-// You can define enums, and have them automaticaly derive FromArg where each
-// enum variant will be parsed from case insensitive strings of the same name
-// (e.g. `"Auto"` will parse into `Auto`, `"always"` into `Always`, `"NEVER"`
-// into `Never`)
-#[derive(FromArg)]
-enum ColorMode {
-    Auto,
-    Always,
-    Never,
-}
+## How to get it
+It is available on [crates.io][crate]:
 
-// create your struct that will hold the arguments
-struct Args<'a> {
-    name: &'a str,
-    count: usize,
-    colors: ColorMode,
-}
-
-impl<'a> Args<'a> {
-    // create function that takes the arguments as ArgIterator
-    pub fn parse<I>(mut args: I) -> Result<'a, Self>
-    where
-        I: ArgIterator<'a>,
-        I::Item: ByRef<&'a str>,
-    {
-        // initialize with default values
-        let mut res = Args {
-            name: "pareg",
-            count: 1,
-            colors: ColorMode::Auto,
-        };
-
-        while let Some(arg) = args.next().by_ref() {
-            match arg {
-                // when there is the argument `count`, parse the next value
-                "-c" | "--count" => res.count = args.next_arg()?,
-                a if a.starts_with("--color=") => {
-                    res.colors = key_val_arg::<&str, _>(a, '=')?.1;
-                }
-                // if the argument is unknown, just set it as name
-                _ => res.name = arg,
-            }
-        }
-
-        Ok(res)
-    }
-}
-
-// Now you can call your parse method:
-fn main() -> Result<'static, ()> {
-    // you need to collect the arguments first so that you can refer to
-    // them by reference
-    let args: Vec<_> = std::env::args().collect();
-    // just pass in any iterator of string reference that has lifetime
-    let args = Args::parse(args.iter())
-        // You need to map the error in this case to get the owned
-        // version.
-        .map_err(|e| e.into_owned())?;
-
-    // Now you can use your arguments:
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name);
-    }
-    Ok(())
-}
+### With cargo
+```shell
+cargo add pareg
 ```
+
+### In Cargo.toml
+```toml
+[dependencies]
+pareg = "0.1.0"
+```
+
+## Links
+- **Author:** [BonnyAD9][author]
+- **GitHub repository:** [BonnyAD/pareg][repo]
+- **Package:** [crates.io][crate]
+- **Documentation:** [docs.rs][docs]
+- **My Website:** [bonnyad9.github.io][my-web]
+
+[version-badge]: https://img.shields.io/crates/v/pareg
+[downloads-badge]: https://img.shields.io/crates/d/pareg
+[author]: https://github.com/BonnyAD9
+[repo]: https://github.com/BonnyAD9/pareg
+[docs]: https://docs.rs/pareg/latest/pareg/
+[crate]: https://crates.io/crates/pareg
+[my-web]: https://bonnyad9.github.io/

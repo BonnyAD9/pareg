@@ -1,42 +1,25 @@
-use std::{borrow::Cow, rc::Rc, sync::Arc};
-
 use crate::{
-    err::{ArgError, Result},
-    from_arg::FromArg,
-    impl_all,
+    by_ref::ByRef, err::{ArgError, Result}, from_arg::FromArg
 };
-
-// Represents reference to an object with a specific lifetime.
-pub trait ByRef<T>
-where
-    T: ?Sized,
-{
-    fn by_ref(self) -> T;
-}
-
-impl_all! {
-    impl<'a> ByRef<&'a str>:
-        &'a str, &'a String, &'a Arc<str>, &'a Rc<str>, &'a Cow<'a, str>,
-        &&'a str
-    => {
-        fn by_ref(self) -> &'a str {
-            #[allow(clippy::useless_asref)]
-            (*self).as_ref()
-        }
-    }
-}
-
-impl<'a, R, T> ByRef<Option<&'a T>> for Option<R> where R: ByRef<&'a T>, T: ?Sized {
-    fn by_ref(self) -> Option<&'a T> {
-        self.map(|a| a.by_ref())
-    }
-}
 
 /// An iterator over arguments. It can directly parse the value it yelds.
 pub trait ArgIterator<'a>: Iterator
 where
     Self::Item: ByRef<&'a str>,
 {
+    /// Parses the next value in the iterator.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["hello", "10", "0.25", "always"];
+    /// let mut args = args.iter();
+    ///
+    /// assert_eq!("hello", args.next_arg::<&str>().unwrap());
+    /// assert_eq!(10, args.next_arg::<usize>().unwrap());
+    /// assert_eq!(0.25, args.next_arg::<f64>().unwrap());
+    /// ```
     fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>;

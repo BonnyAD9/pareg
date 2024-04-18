@@ -1,23 +1,25 @@
-use crate::{err::Result, from_arg::FromArg};
+use crate::{by_ref::ByRef, err::Result, from_arg::FromArg};
 
-pub trait ArgInto<'a, T> {
-    fn arg_into(self) -> Result<'a, T>;
+/// This trait represents a string reference object that can be parsed into a
+/// type.
+pub trait ArgInto<'a> {
+    /// Parses this string into another type using the [`FromArg`] trait.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgInto;
+    ///
+    /// assert_eq!("hello", "hello".arg_into::<&str>().unwrap());
+    /// assert_eq!(5, "5".arg_into::<i32>().unwrap());
+    /// ```
+    fn arg_into<T>(self) -> Result<'a, T> where T: FromArg<'a>;
 }
 
-impl<'a, T> ArgInto<'a, T> for &'a str
+impl<'a, S> ArgInto<'a> for S
 where
-    T: FromArg<'a>,
+    S: ByRef<&'a str>
 {
-    fn arg_into(self) -> Result<'a, T> {
-        T::from_arg(self)
-    }
-}
-
-impl<'a, T> ArgInto<'a, T> for &'a String
-where
-    T: FromArg<'a>,
-{
-    fn arg_into(self) -> Result<'a, T> {
-        T::from_arg(self)
+    fn arg_into<T>(self) -> Result<'a, T> where T: FromArg<'a> {
+        T::from_arg(self.by_ref())
     }
 }

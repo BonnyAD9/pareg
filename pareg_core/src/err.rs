@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use thiserror::Error;
 
+/// Pareg result type. It is [`std::result::Result<T, ArgError<'a>>`]
 pub type Result<'a, T> = std::result::Result<T, ArgError<'a>>;
 
 /// Errors thrown when parsing arguments.
