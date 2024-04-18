@@ -41,3 +41,4 @@ pareg = "0.1.0"
 [docs]: https://docs.rs/pareg/latest/pareg/
 [crate]: https://crates.io/crates/pareg
 [my-web]: https://bonnyad9.github.io/
+[releases]: https://github.com/BonnyAD9/pareg/releases
