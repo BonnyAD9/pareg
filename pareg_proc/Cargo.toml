@@ -2,6 +2,11 @@
 name = "pareg_proc"
 version = "0.1.0"
 edition = "2021"
+license-file = "../LICENSE"
+description = "This library contains proc macros for the pareg library."
+homepage = "https://github.com/BonnyAD9/pareg"
+repository = "https://github.com/BonnyAD9/pareg"
+readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

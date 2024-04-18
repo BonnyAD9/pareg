@@ -2,6 +2,11 @@
 name = "pareg"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+description = "Rust library with useful tools for command line argument parsing"
+homepage = "https://github.com/BonnyAD9/pareg"
+repository = "https://github.com/BonnyAD9/pareg"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
