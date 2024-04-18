@@ -7,15 +7,15 @@ use crate::{
 };
 
 // Represents reference to an object with a specific lifetime.
-pub trait ByRef<'a, T>
+pub trait ByRef<T>
 where
     T: ?Sized,
 {
-    fn by_ref(self) -> &'a T;
+    fn by_ref(self) -> T;
 }
 
 impl_all! {
-    impl<'a> ByRef<'a, str>:
+    impl<'a> ByRef<&'a str>:
         &'a str, &'a String, &'a Arc<str>, &'a Rc<str>, &'a Cow<'a, str>,
         &&'a str
     => {
@@ -26,10 +26,16 @@ impl_all! {
     }
 }
 
+impl<'a, R, T> ByRef<Option<&'a T>> for Option<R> where R: ByRef<&'a T>, T: ?Sized {
+    fn by_ref(self) -> Option<&'a T> {
+        self.map(|a| a.by_ref())
+    }
+}
+
 /// An iterator over arguments. It can directly parse the value it yelds.
 pub trait ArgIterator<'a>: Iterator
 where
-    Self::Item: ByRef<'a, str>,
+    Self::Item: ByRef<&'a str>,
 {
     fn next_arg<T>(&mut self) -> Result<'a, T>
     where
@@ -39,7 +45,7 @@ where
 impl<'a, I> ArgIterator<'a> for I
 where
     I: Iterator,
-    I::Item: ByRef<'a, str>,
+    I::Item: ByRef<&'a str>,
 {
     fn next_arg<T>(&mut self) -> Result<'a, T>
     where

@@ -9,7 +9,8 @@ the future.)
 
 ## Example usage
 ```rust
-use pareg::{
+use crate::{
+    self as pareg,
     err::Result,
     iter::{ArgIterator, ByRef},
     parsers::key_val_arg,
@@ -39,6 +40,7 @@ impl<'a> Args<'a> {
     pub fn parse<I>(mut args: I) -> Result<'a, Self>
     where
         I: ArgIterator<'a>,
+        I::Item: ByRef<&'a str>,
     {
         // initialize with default values
         let mut res = Args {
@@ -47,8 +49,7 @@ impl<'a> Args<'a> {
             colors: ColorMode::Auto,
         };
 
-        while let Some(arg) = args.next() {
-            let arg = arg.by_ref();
+        while let Some(arg) = args.next().by_ref() {
             match arg {
                 // when there is the argument `count`, parse the next value
                 "-c" | "--count" => res.count = args.next_arg()?,
