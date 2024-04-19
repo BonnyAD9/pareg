@@ -15,7 +15,7 @@ use proc_macro::TokenStream;
 /// #[derive(FromArg, PartialEq, Debug)]
 /// enum ColorMode {
 ///     Auto,
-///     #[arg("yes")]
+///     #[arg("yes" | "ok")]
 ///     Always,
 ///     #[arg("no")]
 ///     Never,
@@ -25,6 +25,7 @@ use proc_macro::TokenStream;
 /// assert_eq!(ColorMode::Always, ColorMode::from_arg("Always").unwrap());
 /// assert_eq!(ColorMode::Never, ColorMode::from_arg("NEVER").unwrap());
 /// assert_eq!(ColorMode::Always, ColorMode::from_arg("yes").unwrap());
+/// assert_eq!(ColorMode::Always, ColorMode::from_arg("oK").unwrap());
 /// assert_eq!(ColorMode::Never, ColorMode::from_arg("NO").unwrap());
 /// assert_eq!(ColorMode::Auto, ColorMode::from_arg("AuTo").unwrap());
 /// ```

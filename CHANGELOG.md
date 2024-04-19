@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.3.0
+- Add `arg` attribute to `FromArg` derive macro.
+
 ## v0.2.0
 - Make `ArgIterator` struct instead of trait
 - Remember the last returned value on `ArgIterator`
