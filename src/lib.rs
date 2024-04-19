@@ -31,9 +31,9 @@
 //!
 //! impl<'a> Args<'a> {
 //!     // create function that takes the arguments as ArgIterator
-//!     pub fn parse<I>(mut args: I) -> Result<'a, Self>
+//!     pub fn parse<I>(mut args: ArgIterator<'a, I>) -> Result<'a, Self>
 //!     where
-//!         I: ArgIterator<'a>,
+//!         I: Iterator,
 //!         I::Item: ByRef<&'a str>,
 //!     {
 //!         // initialize with default values
@@ -43,7 +43,7 @@
 //!             colors: ColorMode::Auto,
 //!         };
 //!
-//!         while let Some(arg) = args.next().by_ref() {
+//!         while let Some(arg) = args.next() {
 //!             match arg {
 //!                 // when there is the argument `count`, parse the next value
 //!                 "-c" | "--count" => res.count = args.next_arg()?,
@@ -65,7 +65,7 @@
 //!     // them by reference
 //!     let args: Vec<_> = std::env::args().collect();
 //!     // just pass in any iterator of string reference that has lifetime
-//!     let args = Args::parse(args.iter())
+//!     let args = Args::parse(args.iter().into())
 //!         // You need to map the error in this case to get the owned
 //!         // version.
 //!         .map_err(|e| e.into_owned())?;
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn arg_iterator() -> Result<'static, ()> {
         let args = ["hello", "10", "0.25", "always"];
-        let mut args = args.iter();
+        let mut args: ArgIterator<_> = args.iter().into();
 
         assert_eq!("hello", args.next_arg::<&str>()?);
         assert_eq!(10, args.next_arg::<usize>()?);
