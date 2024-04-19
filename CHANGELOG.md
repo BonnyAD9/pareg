@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.2.0
+- Make `ArgIterator` struct instead of trait
+
 ## v0.1.1
 - Fix visibility of certain items
 - Additional documentation
