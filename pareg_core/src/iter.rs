@@ -169,7 +169,6 @@ where
         bool_arg(t, f, self.next_arg()?)
     }
 
-
     /// Uses the function [`opt_bool_arg`] on the next argument.
     ///
     /// Parse bool value in a specific way. If the value of lowercase `arg` is
@@ -223,7 +222,10 @@ where
     /// assert_eq!(0.25, args.cur_arg::<f64>().unwrap());
     /// ```
     #[inline(always)]
-    pub fn cur_arg<T>(&self) -> Result<'a, T> where T: FromArg<'a> {
+    pub fn cur_arg<T>(&self) -> Result<'a, T>
+    where
+        T: FromArg<'a>,
+    {
         if let Some(arg) = self.cur {
             T::from_arg(arg)
         } else {
@@ -263,10 +265,7 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_key_mval<K, V>(
-        &self,
-        sep: char,
-    ) -> Result<'a, (K, Option<V>)>
+    pub fn cur_key_mval<K, V>(&self, sep: char) -> Result<'a, (K, Option<V>)>
     where
         K: FromArg<'a>,
         V: FromArg<'a>,
