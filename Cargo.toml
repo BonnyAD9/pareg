@@ -1,6 +1,6 @@
 [package]
 name = "pareg"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license-file = "LICENSE"
 description = "Rust library with useful tools for command line argument parsing"
@@ -17,5 +17,5 @@ members = [
 ]
 
 [dependencies]
-pareg_core = { version = "0.2.0", path = "pareg_core" }
-pareg_proc = { version = "0.2.0", path = "pareg_proc" }
+pareg_core = { version = "0.3.0", path = "pareg_core" }
+pareg_proc = { version = "0.3.0", path = "pareg_proc" }
