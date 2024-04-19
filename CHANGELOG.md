@@ -2,6 +2,8 @@
 
 ## v0.2.0
 - Make `ArgIterator` struct instead of trait
+- Remember the last returned value on `ArgIterator`
+- More parsing option s on `ArgIterator`
 
 ## v0.1.1
 - Fix visibility of certain items

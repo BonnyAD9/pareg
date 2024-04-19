@@ -48,7 +48,7 @@
 //!                 // when there is the argument `count`, parse the next value
 //!                 "-c" | "--count" => res.count = args.next_arg()?,
 //!                 a if a.starts_with("--color=") => {
-//!                     res.colors = key_val_arg::<&str, _>(a, '=')?.1;
+//!                     res.colors = args.cur_key_val::<&str, _>('=')?.1;
 //!                 }
 //!                 // if the argument is unknown, just set it as name
 //!                 _ => res.name = arg,
