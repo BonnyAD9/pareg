@@ -17,6 +17,7 @@ impl_all! {
         &'a str, &'a String, &'a Arc<str>, &'a Rc<str>, &'a Cow<'a, str>,
         &&'a str
     => {
+        #[inline(always)]
         fn by_ref(self) -> &'a str {
             #[allow(clippy::useless_asref)]
             (*self).as_ref()
@@ -29,6 +30,7 @@ where
     R: ByRef<&'a T>,
     T: ?Sized,
 {
+    #[inline(always)]
     fn by_ref(self) -> Option<&'a T> {
         self.map(|a| a.by_ref())
     }

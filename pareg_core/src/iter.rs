@@ -23,6 +23,7 @@ where
 {
     type Item = &'a str;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.cur = self.iter.next().by_ref();
         self.cur
@@ -60,6 +61,7 @@ where
     /// assert_eq!(10, args.next_arg::<usize>().unwrap());
     /// assert_eq!(0.25, args.next_arg::<f64>().unwrap());
     /// ```
+    #[inline]
     pub fn next_arg<T>(&mut self) -> Result<'a, T>
     where
         T: FromArg<'a>,
@@ -101,6 +103,7 @@ where
     ///     args.next_key_mval::<String, &str>('=').unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn next_key_mval<K, V>(
         &mut self,
         sep: char,
@@ -135,6 +138,7 @@ where
     ///     args.next_key_val::<i32, f64>(':').unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn next_key_val<K, V>(&mut self, sep: char) -> Result<'a, (K, V)>
     where
         K: FromArg<'a>,
@@ -160,6 +164,7 @@ where
     /// assert_eq!(true, args.next_bool("yes", "no").unwrap());
     /// assert_eq!(false, args.next_bool("always", "never").unwrap());
     /// ```
+    #[inline(always)]
     pub fn next_bool(&mut self, t: &str, f: &str) -> Result<'a, bool> {
         bool_arg(t, f, self.next_arg()?)
     }
@@ -191,6 +196,7 @@ where
     ///     args.next_opt_bool("always", "never", "auto").unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn next_opt_bool(
         &mut self,
         t: &str,
@@ -216,6 +222,7 @@ where
     /// args.next();
     /// assert_eq!(0.25, args.cur_arg::<f64>().unwrap());
     /// ```
+    #[inline(always)]
     pub fn cur_arg<T>(&self) -> Result<'a, T> where T: FromArg<'a> {
         if let Some(arg) = self.cur {
             T::from_arg(arg)
@@ -255,6 +262,7 @@ where
     ///     args.cur_key_mval::<String, &str>('=').unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn cur_key_mval<K, V>(
         &self,
         sep: char,
@@ -292,6 +300,7 @@ where
     ///     args.cur_key_val::<i32, f64>(':').unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn cur_key_val<K, V>(&self, sep: char) -> Result<'a, (K, V)>
     where
         K: FromArg<'a>,
@@ -321,6 +330,7 @@ where
     /// args.next();
     /// assert_eq!(false, args.cur_bool("always", "never").unwrap());
     /// ```
+    #[inline(always)]
     pub fn cur_bool(&self, t: &str, f: &str) -> Result<'a, bool> {
         bool_arg(t, f, self.cur_arg()?)
     }
@@ -355,6 +365,7 @@ where
     ///     args.cur_opt_bool("always", "never", "auto").unwrap()
     /// );
     /// ```
+    #[inline(always)]
     pub fn cur_opt_bool(
         &self,
         t: &str,

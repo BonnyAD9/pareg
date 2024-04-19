@@ -151,6 +151,7 @@ pub fn opt_bool_arg<'a>(
 /// assert_eq!(10, parse_arg::<i32>("10").unwrap());
 /// assert_eq!(0.25, parse_arg::<f64>("0.25").unwrap());
 /// ```
+#[inline(always)]
 pub fn parse_arg<'a, T>(arg: &'a str) -> Result<'a, T>
 where
     T: FromArg<'a>,

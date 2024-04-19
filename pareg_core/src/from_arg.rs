@@ -42,6 +42,7 @@ where
     T: FromArgStr,
     T::Err: Display,
 {
+    #[inline]
     fn from_arg(arg: &'a str) -> Result<'a, Self> {
         T::from_str(arg).map_err(|e| ArgError::FailedToParse {
             typ: type_name::<T>(),
@@ -59,18 +60,21 @@ impl_all! { FromArgStr:
 }
 
 impl<'a> FromArg<'a> for &'a str {
+    #[inline(always)]
     fn from_arg(arg: &'a str) -> Result<Self> {
         Ok(arg)
     }
 }
 
 impl<'a> FromArg<'a> for &'a Path {
+    #[inline(always)]
     fn from_arg(arg: &'a str) -> Result<Self> {
         Ok(Path::new(arg))
     }
 }
 
 impl<'a> FromArg<'a> for &'a OsStr {
+    #[inline(always)]
     fn from_arg(arg: &'a str) -> Result<Self> {
         Ok(OsStr::new(arg))
     }
@@ -78,6 +82,7 @@ impl<'a> FromArg<'a> for &'a OsStr {
 
 impl_all! {
     impl<'a> FromArg<'a>: Arc<str>, Rc<str>, Cow<'a, str> => {
+        #[inline(always)]
         fn from_arg(arg: &'a str) -> Result<'a, Self> {
             Ok(arg.into())
         }
@@ -88,6 +93,7 @@ impl<'a, T> FromArg<'a> for Option<T>
 where
     T: FromArg<'a>,
 {
+    #[inline]
     fn from_arg(arg: &'a str) -> Result<Self> {
         if arg.is_empty() {
             Ok(None)

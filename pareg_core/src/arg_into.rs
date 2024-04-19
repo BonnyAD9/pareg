@@ -21,6 +21,7 @@ impl<'a, S> ArgInto<'a> for S
 where
     S: ByRef<&'a str>,
 {
+    #[inline(always)]
     fn arg_into<T>(self) -> Result<'a, T>
     where
         T: FromArg<'a>,
