@@ -3,6 +3,8 @@
 ## v0.4.0
 - Add new parsers: `key_arg`, `val_arg`, `mval_arg` and their implementations
   on `ArgIterator`
+- Remove lifetime from errors
+- Move proc macro to the same namespace as its trait.
 
 ## v0.3.0
 - Add `arg` attribute to `FromArg` derive macro.

@@ -9,7 +9,7 @@
 //!
 //! ## Example usage
 //! ```rust
-//! use pareg::{Result, ArgIterator, ByRef, key_val_arg, proc::FromArg};
+//! use pareg::{Result, ArgIterator, ByRef, key_val_arg, FromArg};
 //!
 //! // You can define enums, and have them automaticaly derive FromArg where each
 //! // enum variant will be parsed from case insensitive strings of the same name
@@ -76,15 +76,11 @@
 //! ```
 
 pub use pareg_core::*;
-
-/// Contains procedural macros such as the derive macro [`proc::FromArg`].
-pub mod proc {
-    pub use pareg_proc::FromArg;
-}
+pub use pareg_proc::FromArg;
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as pareg, proc::FromArg, ArgIterator, Result};
+    use crate::{self as pareg, FromArg, ArgIterator, Result};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {
