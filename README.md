@@ -4,11 +4,11 @@
 
 Helpful utilities for parsing command line arguments.
 
-Currently this crate doesn't contain any magic derive macro that would generate
-code that parses your arguments. There are many ways that arguments may be used
-and so there are only helper functions, traits and structures that help with
-the parsing in a more manual way. (But there may be such derive macro in
-the future.)
+The aim of this crate is not to automate parsing of command line arguments
+because there are many ways to construct a CLI for your application. Instead
+this crate provides useful types and parsing funcitonality to make the process
+of writing your own function to parse command line arguments as simple as
+possible. If you wan't to see examples see [docs][docs].
 
 ## How to use it
 Documentation and examples are available at the [docs][docs].
