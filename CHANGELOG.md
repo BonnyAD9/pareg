@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.4.0
+- Add new parsers: `key_arg`, `val_arg`, `mval_arg` and their implementations
+  on `ArgIterator`
+
 ## v0.3.0
 - Add `arg` attribute to `FromArg` derive macro.
 

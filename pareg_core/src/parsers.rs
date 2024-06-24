@@ -158,3 +158,75 @@ where
 {
     arg.arg_into()
 }
+
+/// If sep was `'='`, parses `"key=value"` into `"key"` and discards `value`.
+///
+/// In case that there is no `'='`, parses the whole input.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::key_arg;
+///
+/// assert_eq!(
+///     "key",
+///     key_arg::<&str>("key=value", '=').unwrap()
+/// );
+/// assert_eq!(
+///     5,
+///     key_arg::<i32>("5:0.25", ':').unwrap()
+/// );
+/// ```
+#[inline(always)]
+pub fn key_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    Ok(key_mval_arg::<_, &str>(arg, sep)?.0)
+}
+
+/// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+/// given type.
+///
+/// In case that there is no `'='`, returns [`ArgError::NoValue`].
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::val_arg;
+///
+/// assert_eq!(
+///     "value",
+///     val_arg::<&str>("key=value", '=').unwrap()
+/// );
+/// assert_eq!(
+///     0.25,
+///     val_arg::<f64>("5:0.25", ':').unwrap()
+/// );
+/// ```
+#[inline(always)]
+pub fn val_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    Ok(key_val_arg::<&str, _>(arg, sep)?.1)
+}
+
+/// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+/// given type.
+///
+/// In case that there is no `'='`, value is `None`.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::mval_arg;
+///
+/// assert_eq!(
+///     Some("value"),
+///     mval_arg::<&str>("key=value", '=').unwrap()
+/// );
+/// assert_eq!(
+///     Some(0.25),
+///     mval_arg::<f64>("5:0.25", ':').unwrap()
+/// );
+/// assert_eq!(
+///     None,
+///     mval_arg::<f64>("only_key", '=').unwrap()
+/// );
+/// ```
+#[inline(always)]
+pub fn mval_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+    Ok(key_mval_arg::<&str, _>(arg, sep)?.1)
+}

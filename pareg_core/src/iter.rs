@@ -1,9 +1,5 @@
 use crate::{
-    bool_arg,
-    by_ref::ByRef,
-    err::{ArgError, Result},
-    from_arg::FromArg,
-    key_mval_arg, key_val_arg, opt_bool_arg,
+    bool_arg, by_ref::ByRef, err::{ArgError, Result}, from_arg::FromArg, key_arg, key_mval_arg, key_val_arg, mval_arg, opt_bool_arg, val_arg
 };
 
 /// An iterator over arguments. It can directly parse the value it yelds.
@@ -205,6 +201,94 @@ where
         opt_bool_arg(t, f, n, self.next_arg()?)
     }
 
+    /// Uses the function [`key_arg`] on the next value.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `"key"` and discards `value`.
+    ///
+    /// In case that there is no `'='`, parses the whole input.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// assert_eq!(
+    ///     "key",
+    ///     args.next_key::<&str>('=').unwrap()
+    /// );
+    /// assert_eq!(
+    ///     5,
+    ///     args.next_key::<i32>(':').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn next_key<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+        key_arg(self.next_arg()?, sep)
+    }
+
+
+    /// Uses the function [`val_arg`] on the next value.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+    /// given type.
+    ///
+    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// assert_eq!(
+    ///     "value",
+    ///     args.next_val::<&str>('=').unwrap()
+    /// );
+    /// assert_eq!(
+    ///     0.25,
+    ///     args.next_val::<f64>(':').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn next_val<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+        val_arg(self.next_arg()?, sep)
+    }
+
+    /// Uses the function [`mval_arg`] on the next argument.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+    /// given type.
+    ///
+    /// In case that there is no `'='`, value is `None`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25", "only_key"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// assert_eq!(
+    ///     Some("value"),
+    ///     args.next_mval::<&str>('=').unwrap()
+    /// );
+    /// assert_eq!(
+    ///     Some(0.25),
+    ///     args.next_mval::<f64>(':').unwrap()
+    /// );
+    /// assert_eq!(
+    ///     None,
+    ///     args.next_mval::<&str>('=').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn next_mval<T>(&mut self, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+        mval_arg(self.next_arg()?, sep)
+    }
+
     /// Parses the last returned value from the iterator.
     ///
     /// # Examples
@@ -372,5 +456,103 @@ where
         n: &str,
     ) -> Result<'a, Option<bool>> {
         opt_bool_arg(t, f, n, self.cur_arg()?)
+    }
+
+    /// Uses the function [`key_arg`] on the next argument. If there is no
+    /// last argument, returns `ArgError::NoLastArgument`.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `"key"` and discards `value`.
+    ///
+    /// In case that there is no `'='`, parses the whole input.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// args.next();
+    /// assert_eq!(
+    ///     "key",
+    ///     args.cur_key::<&str>('=').unwrap()
+    /// );
+    /// args.next();
+    /// assert_eq!(
+    ///     5,
+    ///     args.cur_key::<i32>(':').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn cur_key<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+        key_arg(self.cur_arg()?, sep)
+    }
+
+
+    /// Uses the function [`val_arg`] on the next argument. If there is no
+    /// last argument, returns `ArgError::NoLastArgument`.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+    /// given type.
+    ///
+    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// args.next();
+    /// assert_eq!(
+    ///     "value",
+    ///     args.cur_val::<&str>('=').unwrap()
+    /// );
+    /// args.next();
+    /// assert_eq!(
+    ///     0.25,
+    ///     args.cur_val::<f64>(':').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn cur_val<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+        val_arg(self.cur_arg()?, sep)
+    }
+
+    /// Uses the function [`mval_arg`] on the next argument. If there is no
+    /// last argument, returns `ArgError::NoLastArgument`.
+    ///
+    /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
+    /// given type.
+    ///
+    /// In case that there is no `'='`, value is `None`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::ArgIterator;
+    ///
+    /// let args = ["key=value", "5:0.25", "only_key"];
+    /// let mut args: ArgIterator<_> = args.iter().into();
+    ///
+    /// args.next();
+    /// assert_eq!(
+    ///     Some("value"),
+    ///     args.cur_mval::<&str>('=').unwrap()
+    /// );
+    /// args.next();
+    /// assert_eq!(
+    ///     Some(0.25),
+    ///     args.cur_mval::<f64>(':').unwrap()
+    /// );
+    /// args.next();
+    /// assert_eq!(
+    ///     None,
+    ///     args.cur_mval::<&str>('=').unwrap()
+    /// );
+    /// ```
+    #[inline(always)]
+    pub fn cur_mval<T>(&mut self, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+        mval_arg(self.cur_arg()?, sep)
     }
 }
