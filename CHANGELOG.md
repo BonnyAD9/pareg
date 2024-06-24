@@ -5,6 +5,7 @@
   on `ArgIterator`
 - Remove lifetime from errors
 - Move proc macro to the same namespace as its trait.
+- Add macros `starts_any` and `has_any_key`
 
 ## v0.3.0
 - Add `arg` attribute to `FromArg` derive macro.

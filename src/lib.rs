@@ -9,7 +9,7 @@
 //!
 //! ## Example usage
 //! ```rust
-//! use pareg::{Result, ArgIterator, ByRef, key_val_arg, FromArg};
+//! use pareg::{Result, ArgIterator, ByRef, key_val_arg, FromArg, starts_any};
 //!
 //! // You can define enums, and have them automaticaly derive FromArg where each
 //! // enum variant will be parsed from case insensitive strings of the same name
@@ -47,8 +47,10 @@
 //!             match arg {
 //!                 // when there is the argument `count`, parse the next value
 //!                 "-c" | "--count" => res.count = args.next_arg()?,
-//!                 a if a.starts_with("--color=") => {
-//!                     res.colors = args.cur_key_val::<&str, _>('=')?.1;
+//!                 // if the argument starts with either `--color` or
+//!                 // `--colour`, parse its value.
+//!                 a if starts_any!(a, "--color=", "--colour=") => {
+//!                     res.colors = args.cur_val('=')?;
 //!                 }
 //!                 // if the argument is unknown, just set it as name
 //!                 _ => res.name = arg,
@@ -80,7 +82,7 @@ pub use pareg_proc::FromArg;
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as pareg, FromArg, ArgIterator, Result};
+    use crate::{self as pareg, ArgIterator, FromArg, Result};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {
@@ -100,5 +102,17 @@ mod tests {
         assert_eq!(ColorMode::Always, args.next_arg::<ColorMode>()?);
 
         Ok(())
+    }
+
+    #[test]
+    fn has_any_key() {
+        use pareg_core::has_any_key;
+
+        let s = "ahoj";
+        let sep = ':';
+        assert!(has_any_key!("hello", '=', "hello", s));
+        assert!(has_any_key!("hello=", '=', "hello", s));
+        assert!(has_any_key!("ahoj:lol", sep, "hello", s));
+        assert!(!has_any_key!("greeting=ahoj", '=', "greet", s));
     }
 }
