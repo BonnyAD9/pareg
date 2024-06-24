@@ -55,12 +55,12 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 
     quote! {
         impl<'a> pareg::FromArg<'a> for #ident {
-            fn from_arg(arg: &'a str) -> pareg::Result<'a, Self> {
+            fn from_arg(arg: &'a str) -> pareg::Result<Self> {
                 match arg.trim().to_lowercase().as_str() {
                     #res
                     _ => Err(pareg::ArgError::FailedToParse {
                         typ: core::any::type_name::<Self>(),
-                        value: arg.into(),
+                        value: arg.to_owned().into(),
                         msg: Some(
                             "The value doesn't corespond to any enum variant"
                                 .into()

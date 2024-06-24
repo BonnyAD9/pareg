@@ -43,10 +43,10 @@ where
     T::Err: Display,
 {
     #[inline]
-    fn from_arg(arg: &'a str) -> Result<'a, Self> {
+    fn from_arg(arg: &str) -> Result<Self> {
         T::from_str(arg).map_err(|e| ArgError::FailedToParse {
             typ: type_name::<T>(),
-            value: arg.into(),
+            value: arg.to_owned().into(),
             msg: Some(format!("{e}").into()),
         })
     }
@@ -83,7 +83,7 @@ impl<'a> FromArg<'a> for &'a OsStr {
 impl_all! {
     impl<'a> FromArg<'a>: Arc<str>, Rc<str>, Cow<'a, str> => {
         #[inline(always)]
-        fn from_arg(arg: &'a str) -> Result<'a, Self> {
+        fn from_arg(arg: &'a str) -> Result<Self> {
             Ok(arg.into())
         }
     }

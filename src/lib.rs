@@ -31,7 +31,7 @@
 //!
 //! impl<'a> Args<'a> {
 //!     // create function that takes the arguments as ArgIterator
-//!     pub fn parse<I>(mut args: ArgIterator<'a, I>) -> Result<'a, Self>
+//!     pub fn parse<I>(mut args: ArgIterator<'a, I>) -> Result<Self>
 //!     where
 //!         I: Iterator,
 //!         I::Item: ByRef<&'a str>,
@@ -60,15 +60,12 @@
 //! }
 //!
 //! // Now you can call your parse method:
-//! fn main() -> Result<'static, ()> {
+//! fn main() -> Result<()> {
 //!     // you need to collect the arguments first so that you can refer to
 //!     // them by reference
 //!     let args: Vec<_> = std::env::args().collect();
 //!     // just pass in any iterator of string reference that has lifetime
-//!     let args = Args::parse(args.iter().into())
-//!         // You need to map the error in this case to get the owned
-//!         // version.
-//!         .map_err(|e| e.into_owned())?;
+//!     let args = Args::parse(args.iter().into())?;
 //!
 //!     // Now you can use your arguments:
 //!     for _ in 0..args.count {
@@ -97,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn arg_iterator() -> Result<'static, ()> {
+    fn arg_iterator() -> Result<()> {
         let args = ["hello", "10", "0.25", "always"];
         let mut args: ArgIterator<_> = args.iter().into();
 

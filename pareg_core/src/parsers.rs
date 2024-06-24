@@ -65,7 +65,7 @@ where
     V: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
-        return Err(ArgError::NoValue(arg.into()));
+        return Err(ArgError::NoValue(arg.to_owned().into()));
     };
 
     Ok((K::from_arg(k)?, V::from_arg(v)?))
@@ -83,7 +83,7 @@ where
 /// assert_eq!(true, bool_arg("yes", "no", "yes").unwrap());
 /// assert_eq!(false, bool_arg("always", "never", "never").unwrap());
 /// ```
-pub fn bool_arg<'a>(t: &str, f: &str, arg: &'a str) -> Result<'a, bool> {
+pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
     let lower = arg.to_lowercase();
     if arg == t {
         Ok(true)
@@ -119,12 +119,12 @@ pub fn bool_arg<'a>(t: &str, f: &str, arg: &'a str) -> Result<'a, bool> {
 ///     opt_bool_arg("always", "never", "auto", "auto").unwrap()
 /// );
 /// ```
-pub fn opt_bool_arg<'a>(
+pub fn opt_bool_arg(
     t: &str,
     f: &str,
     n: &str,
-    arg: &'a str,
-) -> Result<'a, Option<bool>> {
+    arg: &str,
+) -> Result<Option<bool>> {
     let lower = arg.to_lowercase();
     if arg == t {
         Ok(Some(true))
@@ -152,7 +152,7 @@ pub fn opt_bool_arg<'a>(
 /// assert_eq!(0.25, parse_arg::<f64>("0.25").unwrap());
 /// ```
 #[inline(always)]
-pub fn parse_arg<'a, T>(arg: &'a str) -> Result<'a, T>
+pub fn parse_arg<'a, T>(arg: &'a str) -> Result<T>
 where
     T: FromArg<'a>,
 {
@@ -177,7 +177,10 @@ where
 /// );
 /// ```
 #[inline(always)]
-pub fn key_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+pub fn key_arg<'a, T>(arg: &'a str, sep: char) -> Result<T>
+where
+    T: FromArg<'a>,
+{
     Ok(key_mval_arg::<_, &str>(arg, sep)?.0)
 }
 
@@ -200,7 +203,10 @@ pub fn key_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg
 /// );
 /// ```
 #[inline(always)]
-pub fn val_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+pub fn val_arg<'a, T>(arg: &'a str, sep: char) -> Result<T>
+where
+    T: FromArg<'a>,
+{
     Ok(key_val_arg::<&str, _>(arg, sep)?.1)
 }
 
@@ -227,6 +233,9 @@ pub fn val_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, T> where T: FromArg
 /// );
 /// ```
 #[inline(always)]
-pub fn mval_arg<'a, T>(arg: &'a str, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+pub fn mval_arg<'a, T>(arg: &'a str, sep: char) -> Result<Option<T>>
+where
+    T: FromArg<'a>,
+{
     Ok(key_mval_arg::<&str, _>(arg, sep)?.1)
 }

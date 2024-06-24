@@ -3,17 +3,17 @@ use std::borrow::Cow;
 use thiserror::Error;
 
 /// Pareg result type. It is [`std::result::Result<T, ArgError<'a>>`]
-pub type Result<'a, T> = std::result::Result<T, ArgError<'a>>;
+pub type Result<T> = std::result::Result<T, ArgError>;
 
 /// Errors thrown when parsing arguments.
 #[derive(Debug, Error)]
-pub enum ArgError<'a> {
+pub enum ArgError {
     /// There was an unknown argument. The string is the exact value of the
     /// argument that is not known.
     ///
     /// Prints the message: `"Unknown argument '{0}'."`
     #[error("Unknown argument '{0}'.")]
-    UnknownArgument(Cow<'a, str>),
+    UnknownArgument(Cow<'static, str>),
     /// Expected another argument but there were no more arguments. The string
     /// is the last argument after which the next argument was expected.
     ///
@@ -28,7 +28,7 @@ pub enum ArgError<'a> {
             "".to_owned()
         }
     )]
-    NoMoreArguments(Option<Cow<'a, str>>),
+    NoMoreArguments(Option<Cow<'static, str>>),
     /// Failed to parse a string value into a type. `typ` is the name of the
     /// type, `value` is the string that failed to parse and `msg` may
     /// optionally contain more information.
@@ -46,15 +46,15 @@ pub enum ArgError<'a> {
     )]
     FailedToParse {
         typ: &'static str,
-        value: Cow<'a, str>,
-        msg: Option<Cow<'a, str>>,
+        value: Cow<'static, str>,
+        msg: Option<Cow<'static, str>>,
     },
     /// There was no value in a key-value pair. The string is the value of the
     /// argument in which there was no value.
     ///
     /// Prints the message: `"Expected value, but there is no value in '{0}'."`
     #[error("Expected value, but there is no value in '{0}'.")]
-    NoValue(Cow<'a, str>),
+    NoValue(Cow<'static, str>),
     /// This error happens when you call any of the `cur_*` methods on
     /// [`crate::ArgIterator`]. It is not ment to happen in argument parsing
     /// and it may indicate that you have bug in your parsing.
@@ -66,27 +66,4 @@ pub enum ArgError<'a> {
         If you see this error, it is propably a bug."
     )]
     NoLastArgument,
-}
-
-impl<'a> ArgError<'a> {
-    /// Converts the error into owned error by copying all borrowed strings.
-    pub fn into_owned(self) -> ArgError<'static> {
-        match self {
-            Self::UnknownArgument(a) => {
-                ArgError::UnknownArgument(a.into_owned().into())
-            }
-            Self::FailedToParse { typ, value, msg } => {
-                ArgError::FailedToParse {
-                    typ,
-                    value: value.into_owned().into(),
-                    msg: msg.map(|a| a.into_owned().into()),
-                }
-            }
-            Self::NoMoreArguments(a) => {
-                ArgError::NoMoreArguments(a.map(|a| a.into_owned().into()))
-            }
-            Self::NoValue(a) => ArgError::NoValue(a.into_owned().into()),
-            Self::NoLastArgument => ArgError::NoLastArgument,
-        }
-    }
 }

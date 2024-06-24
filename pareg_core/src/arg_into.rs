@@ -12,7 +12,7 @@ pub trait ArgInto<'a> {
     /// assert_eq!("hello", "hello".arg_into::<&str>().unwrap());
     /// assert_eq!(5, "5".arg_into::<i32>().unwrap());
     /// ```
-    fn arg_into<T>(self) -> Result<'a, T>
+    fn arg_into<T>(self) -> Result<T>
     where
         T: FromArg<'a>;
 }
@@ -22,7 +22,7 @@ where
     S: ByRef<&'a str>,
 {
     #[inline(always)]
-    fn arg_into<T>(self) -> Result<'a, T>
+    fn arg_into<T>(self) -> Result<T>
     where
         T: FromArg<'a>,
     {

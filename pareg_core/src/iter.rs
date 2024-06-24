@@ -1,5 +1,9 @@
 use crate::{
-    bool_arg, by_ref::ByRef, err::{ArgError, Result}, from_arg::FromArg, key_arg, key_mval_arg, key_val_arg, mval_arg, opt_bool_arg, val_arg
+    bool_arg,
+    by_ref::ByRef,
+    err::{ArgError, Result},
+    from_arg::FromArg,
+    key_arg, key_mval_arg, key_val_arg, mval_arg, opt_bool_arg, val_arg,
 };
 
 /// An iterator over arguments. It can directly parse the value it yelds.
@@ -58,7 +62,7 @@ where
     /// assert_eq!(0.25, args.next_arg::<f64>().unwrap());
     /// ```
     #[inline]
-    pub fn next_arg<T>(&mut self) -> Result<'a, T>
+    pub fn next_arg<T>(&mut self) -> Result<T>
     where
         T: FromArg<'a>,
     {
@@ -66,7 +70,7 @@ where
         if let Some(a) = self.next() {
             T::from_arg(a.by_ref())
         } else if let Some(last) = last {
-            Err(ArgError::NoMoreArguments(Some(last.into())))
+            Err(ArgError::NoMoreArguments(Some(last.to_owned().into())))
         } else {
             Err(ArgError::NoMoreArguments(None))
         }
@@ -100,10 +104,7 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn next_key_mval<K, V>(
-        &mut self,
-        sep: char,
-    ) -> Result<'a, (K, Option<V>)>
+    pub fn next_key_mval<K, V>(&mut self, sep: char) -> Result<(K, Option<V>)>
     where
         K: FromArg<'a>,
         V: FromArg<'a>,
@@ -135,7 +136,7 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn next_key_val<K, V>(&mut self, sep: char) -> Result<'a, (K, V)>
+    pub fn next_key_val<K, V>(&mut self, sep: char) -> Result<(K, V)>
     where
         K: FromArg<'a>,
         V: FromArg<'a>,
@@ -161,7 +162,7 @@ where
     /// assert_eq!(false, args.next_bool("always", "never").unwrap());
     /// ```
     #[inline(always)]
-    pub fn next_bool(&mut self, t: &str, f: &str) -> Result<'a, bool> {
+    pub fn next_bool(&mut self, t: &str, f: &str) -> Result<bool> {
         bool_arg(t, f, self.next_arg()?)
     }
 
@@ -197,7 +198,7 @@ where
         t: &str,
         f: &str,
         n: &str,
-    ) -> Result<'a, Option<bool>> {
+    ) -> Result<Option<bool>> {
         opt_bool_arg(t, f, n, self.next_arg()?)
     }
 
@@ -224,10 +225,12 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn next_key<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    pub fn next_key<T>(&mut self, sep: char) -> Result<T>
+    where
+        T: FromArg<'a>,
+    {
         key_arg(self.next_arg()?, sep)
     }
-
 
     /// Uses the function [`val_arg`] on the next value.
     ///
@@ -253,7 +256,10 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn next_val<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    pub fn next_val<T>(&mut self, sep: char) -> Result<T>
+    where
+        T: FromArg<'a>,
+    {
         val_arg(self.next_arg()?, sep)
     }
 
@@ -285,7 +291,10 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn next_mval<T>(&mut self, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+    pub fn next_mval<T>(&mut self, sep: char) -> Result<Option<T>>
+    where
+        T: FromArg<'a>,
+    {
         mval_arg(self.next_arg()?, sep)
     }
 
@@ -306,7 +315,7 @@ where
     /// assert_eq!(0.25, args.cur_arg::<f64>().unwrap());
     /// ```
     #[inline(always)]
-    pub fn cur_arg<T>(&self) -> Result<'a, T>
+    pub fn cur_arg<T>(&self) -> Result<T>
     where
         T: FromArg<'a>,
     {
@@ -349,7 +358,7 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_key_mval<K, V>(&self, sep: char) -> Result<'a, (K, Option<V>)>
+    pub fn cur_key_mval<K, V>(&self, sep: char) -> Result<(K, Option<V>)>
     where
         K: FromArg<'a>,
         V: FromArg<'a>,
@@ -384,7 +393,7 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_key_val<K, V>(&self, sep: char) -> Result<'a, (K, V)>
+    pub fn cur_key_val<K, V>(&self, sep: char) -> Result<(K, V)>
     where
         K: FromArg<'a>,
         V: FromArg<'a>,
@@ -414,7 +423,7 @@ where
     /// assert_eq!(false, args.cur_bool("always", "never").unwrap());
     /// ```
     #[inline(always)]
-    pub fn cur_bool(&self, t: &str, f: &str) -> Result<'a, bool> {
+    pub fn cur_bool(&self, t: &str, f: &str) -> Result<bool> {
         bool_arg(t, f, self.cur_arg()?)
     }
 
@@ -454,7 +463,7 @@ where
         t: &str,
         f: &str,
         n: &str,
-    ) -> Result<'a, Option<bool>> {
+    ) -> Result<Option<bool>> {
         opt_bool_arg(t, f, n, self.cur_arg()?)
     }
 
@@ -484,10 +493,12 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_key<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    pub fn cur_key<T>(&mut self, sep: char) -> Result<T>
+    where
+        T: FromArg<'a>,
+    {
         key_arg(self.cur_arg()?, sep)
     }
-
 
     /// Uses the function [`val_arg`] on the next argument. If there is no
     /// last argument, returns `ArgError::NoLastArgument`.
@@ -516,7 +527,10 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_val<T>(&mut self, sep: char) -> Result<'a, T> where T: FromArg<'a> {
+    pub fn cur_val<T>(&mut self, sep: char) -> Result<T>
+    where
+        T: FromArg<'a>,
+    {
         val_arg(self.cur_arg()?, sep)
     }
 
@@ -552,7 +566,10 @@ where
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_mval<T>(&mut self, sep: char) -> Result<'a, Option<T>> where T: FromArg<'a> {
+    pub fn cur_mval<T>(&mut self, sep: char) -> Result<Option<T>>
+    where
+        T: FromArg<'a>,
+    {
         mval_arg(self.cur_arg()?, sep)
     }
 }
