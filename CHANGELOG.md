@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.5.0
+- Very user friendly error messages.
+- Remove `ArgIterator` in favor of `Pareg`. They both have very similar
+  functionality, but work in a sligtly different way that allows the better
+  error messages.
+
 ## v0.4.0
 - Add new parsers: `key_arg`, `val_arg`, `mval_arg` and their implementations
   on `ArgIterator`

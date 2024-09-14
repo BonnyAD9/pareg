@@ -9,19 +9,30 @@ because there are many ways to construct a CLI for your application and
 universal parser is not would be as hard to use as just writing it yourself.
 Instead this crate provides useful types and parsing funcitonality to make the
 process of writing your own code to parse command line arguments as simple as
-possible: It provides special iterator for the arguments that can parse them
-in various ways and plenty of useful parsing functions and macros. Everything
-is made to minimize the repetetive part of the code for parsing the arguments
-and with performance in mind. If you wan't to see examples see [docs][docs].
+possible: It provides special struct for parsing the arguments in various ways
+and plenty of useful parsing functions and macros. Everything is made to
+minimize the repetetive part of the code for parsing the arguments and
+providing very user friendly error messages out of the box. If you wan't to see
+examples see [docs][docs].
 
-Main constructs:
-- `ArgIterator`: iterator over arguments that can also parse them.
+### Main constructs:
+- `Pareg`: istruct that will help with parsing of arguments.
 - `FromArg`: trait simmilar to `FromStr`. It is used by all the parsing
   functionality in this crate. There is also simple derive macro for enums.
     - It is implemented for all types in standard library that implement
       `FromStr` and there is simple trait to just mark `FromStr` implementation
       as also `FromArg`: `FromArgStr`.
 - macros `starts_any` and `has_any_key`: useful for checking argument types.
+
+### Example error message
+```txt
+argument error: Unknown option `no`.
+--> arg1:8..10
+ |
+ $ my-program --color=no
+ |                    ^^ Unknown option.
+hint: Valid options are: `auto`, `always`, `never`.
+```
 
 ## How to use it
 Documentation and examples are available at the [docs][docs].

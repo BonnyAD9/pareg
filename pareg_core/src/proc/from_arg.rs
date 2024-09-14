@@ -20,6 +20,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 
     let mut res = TokenStream::new();
 
+    let mut variants = vec![];
+
     // Create match arms for all enum variants
     res.extend(input.variants.into_iter().flat_map(|v| {
         // Ensure the enum has no fields.
@@ -30,8 +32,9 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
         let ident = v.ident;
 
         // Get the lowercase name of the enum as the first literal in the match
-        let mut res = Literal::string(&ident.to_string().to_lowercase())
-            .into_token_stream();
+        let variant = ident.to_string().to_lowercase();
+        let mut res = Literal::string(&variant).into_token_stream();
+        variants.push(variant);
 
         // Add the variants from the '#[arg()]' attributes
         for attr in v.attrs.into_iter().filter(
@@ -53,19 +56,30 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
         res.into_iter()
     }));
 
+    let mut hint = "Valid options are: ".to_string();
+    for v in variants {
+        hint += &format!("`{v}`, ");
+    }
+    hint.pop();
+    hint.pop();
+    hint.push('.');
+    let hint = Literal::string(&hint).to_token_stream();
+
     quote! {
         impl<'a> pareg::FromArg<'a> for #ident {
             fn from_arg(arg: &'a str) -> pareg::Result<Self> {
                 match arg.trim().to_lowercase().as_str() {
                     #res
-                    _ => Err(pareg::ArgError::FailedToParse {
-                        typ: core::any::type_name::<Self>(),
-                        value: arg.to_owned().into(),
-                        msg: Some(
-                            "The value doesn't corespond to any enum variant"
-                                .into()
-                        ),
-                    }),
+                    _ => {
+                        Err(pareg::ArgError::FailedToParse(pareg::ArgErrCtx {
+                            args: vec![arg.into()],
+                            error_idx: 0,
+                            error_span: 0..arg.len(),
+                            message: "Unknown option.".into(),
+                            long_message: Some(format!("Unknown option `{arg}`.").into()),
+                            hint: Some(#hint.into()),
+                        }))
+                    },
                 }
             }
         }

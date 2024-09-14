@@ -1,15 +1,31 @@
 //! # pareg
 //! Helpful utilities for parsing command line arguments.
 //!
-//! Currently this crate doesn't contain any magic derive macro that would generate
-//! code that parses your arguments. There are many ways that arguments may be used
-//! and so there are only helper functions, traits and structures that help with
-//! the parsing in a more manual way. (But there may be such derive macro in
-//! the future.)
+//! The aim of this crate is not to have some magic derive macro that will do
+//! all of the parsing for you. Instead pareg will let you choose exactly how
+//! to parse the arguments, but it will help as much as possible.
+//!
+//! Pareg also comes with user friendly errors so that you don't have to worry
+//! about writing the error messages while parsing the arguments. For example
+//! running the program below like this:
+//! ```sh
+//! my-program --color=no
+//! ```
+//! will output the following error message:
+//! ```txt
+//! argument error: Unknown option `no`.
+//! --> arg1:8..10
+//!  |
+//!  $ my-program --color=no
+//!  |                    ^^ Unknown option.
+//! hint: Valid options are: `auto`, `always`, `never`.
+//! ```
 //!
 //! ## Example usage
 //! ```rust
-//! use pareg::{Result, ArgIterator, ByRef, key_val_arg, FromArg, starts_any};
+//! use std::process::ExitCode;
+//!
+//! use pareg::{Result, Pareg, FromArg, starts_any};
 //!
 //! // You can define enums, and have them automaticaly derive FromArg where each
 //! // enum variant will be parsed from case insensitive strings of the same name
@@ -23,22 +39,19 @@
 //! }
 //!
 //! // create your struct that will hold the arguments
-//! struct Args<'a> {
-//!     name: &'a str,
+//! struct Args {
+//!     name: String,
 //!     count: usize,
 //!     colors: ColorMode,
 //! }
 //!
-//! impl<'a> Args<'a> {
+//! impl Args {
 //!     // create function that takes the arguments as ArgIterator
-//!     pub fn parse<I>(mut args: ArgIterator<'a, I>) -> Result<Self>
-//!     where
-//!         I: Iterator,
-//!         I::Item: ByRef<&'a str>,
+//!     pub fn parse(mut args: Pareg) -> Result<Self>
 //!     {
 //!         // initialize with default values
 //!         let mut res = Args {
-//!             name: "pareg",
+//!             name: "pareg".to_string(),
 //!             count: 1,
 //!             colors: ColorMode::Auto,
 //!         };
@@ -52,8 +65,12 @@
 //!                 a if starts_any!(a, "--color=", "--colour=") => {
 //!                     res.colors = args.cur_val('=')?;
 //!                 }
+//!                 // it seems that this is flag, but it is not recognized
+//!                 a if a.starts_with('-') => {
+//!                     Err(args.err_unknown_argument())?
+//!                 },
 //!                 // if the argument is unknown, just set it as name
-//!                 _ => res.name = arg,
+//!                 _ => res.name = arg.to_string(),
 //!             }
 //!         }
 //!
@@ -62,18 +79,25 @@
 //! }
 //!
 //! // Now you can call your parse method:
-//! fn main() -> Result<()> {
-//!     // you need to collect the arguments first so that you can refer to
-//!     // them by reference
-//!     let args: Vec<_> = std::env::args().collect();
+//! fn start() -> Result<()> {
 //!     // just pass in any iterator of string reference that has lifetime
-//!     let args = Args::parse(args.iter().into())?;
+//!     let args = Args::parse(Pareg::args())?;
 //!
 //!     // Now you can use your arguments:
 //!     for _ in 0..args.count {
 //!         println!("Hello {}!", args.name);
 //!     }
 //!     Ok(())
+//! }
+//!
+//! fn main() -> ExitCode {
+//!     match start() {
+//!         Ok(_) => ExitCode::SUCCESS,
+//!         Err(e) => {
+//!             eprint!("{e}");
+//!             ExitCode::FAILURE
+//!         }
+//!     }
 //! }
 //! ```
 
@@ -82,7 +106,7 @@ pub use pareg_proc::FromArg;
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as pareg, ArgIterator, FromArg, Result};
+    use crate::{self as pareg, FromArg, Pareg, Result};
 
     #[derive(FromArg, PartialEq, Debug)]
     enum ColorMode {
@@ -94,7 +118,8 @@ mod tests {
     #[test]
     fn arg_iterator() -> Result<()> {
         let args = ["hello", "10", "0.25", "always"];
-        let mut args: ArgIterator<_> = args.iter().into();
+        let mut args =
+            Pareg::new(args.iter().map(|a| a.to_string()).collect());
 
         assert_eq!("hello", args.next_arg::<&str>()?);
         assert_eq!(10, args.next_arg::<usize>()?);

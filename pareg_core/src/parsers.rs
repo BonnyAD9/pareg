@@ -2,6 +2,7 @@ use crate::{
     arg_into::ArgInto,
     err::{ArgError, Result},
     from_arg::FromArg,
+    ArgErrCtx,
 };
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
@@ -38,7 +39,12 @@ where
         return Ok((K::from_arg(arg)?, None));
     };
 
-    Ok((K::from_arg(k)?, Some(V::from_arg(v)?)))
+    Ok((
+        K::from_arg(k).map_err(|e| e.shift_span(0, arg.to_string()))?,
+        Some(V::from_arg(v).map_err(|e| {
+            e.shift_span(k.len() + sep.len_utf8(), arg.to_string())
+        })?),
+    ))
 }
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
@@ -65,10 +71,22 @@ where
     V: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
-        return Err(ArgError::NoValue(arg.to_owned().into()));
+        return Err(ArgError::NoValue(ArgErrCtx {
+            args: vec![arg.into()],
+            error_idx: 0,
+            error_span: 0..arg.len(),
+            message: format!("Missing separator `{sep}`.").into(),
+            long_message: Some(format!("Missing separator `{sep}` for key value pair.").into()),
+            hint: Some(format!("Use the separator `{sep}` to split the argument into key and value.").into()),
+        }));
     };
 
-    Ok((K::from_arg(k)?, V::from_arg(v)?))
+    Ok((
+        K::from_arg(k).map_err(|e| e.shift_span(0, arg.to_string()))?,
+        V::from_arg(v).map_err(|e| {
+            e.shift_span(k.len() + sep.len_utf8(), arg.to_string())
+        })?,
+    ))
 }
 
 /// Parse bool value in a specific way. If the value of lowercase `arg` is
@@ -85,16 +103,19 @@ where
 /// ```
 pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
     let lower = arg.to_lowercase();
-    if arg == t {
+    if lower == t {
         Ok(true)
-    } else if arg == f {
+    } else if lower == f {
         Ok(false)
     } else {
-        Err(ArgError::FailedToParse {
-            typ: "bool",
-            value: lower.into(),
-            msg: Some(format!("Value must be '{t}' or '{f}'").into()),
-        })
+        Err(ArgError::FailedToParse(ArgErrCtx {
+            args: vec![arg.into()],
+            error_idx: 0,
+            error_span: 0..arg.len(),
+            message: "Invalid value.".into(),
+            long_message: Some(format!("Invalid value `{arg}`").into()),
+            hint: Some(format!("Expected `{t}` or `{f}`").into()),
+        }))
     }
 }
 
@@ -126,18 +147,21 @@ pub fn opt_bool_arg(
     arg: &str,
 ) -> Result<Option<bool>> {
     let lower = arg.to_lowercase();
-    if arg == t {
+    if lower == t {
         Ok(Some(true))
-    } else if arg == f {
+    } else if lower == f {
         Ok(Some(false))
-    } else if arg == n {
+    } else if lower == n {
         Ok(None)
     } else {
-        Err(ArgError::FailedToParse {
-            typ: "bool",
-            value: lower.into(),
-            msg: Some(format!("Value must be '{t}' or '{f}'").into()),
-        })
+        Err(ArgError::FailedToParse(ArgErrCtx {
+            args: vec![arg.into()],
+            error_idx: 0,
+            error_span: 0..arg.len(),
+            message: "Invalid value.".into(),
+            long_message: Some(format!("Invalid value `{arg}`").into()),
+            hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
+        }))
     }
 }
 

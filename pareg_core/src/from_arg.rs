@@ -1,5 +1,4 @@
 use std::{
-    any::type_name,
     borrow::Cow,
     ffi::{OsStr, OsString},
     fmt::Display,
@@ -15,6 +14,7 @@ use std::{
 use crate::{
     err::{ArgError, Result},
     impl_all::impl_all,
+    ArgErrCtx,
 };
 
 /// Represents a trait similar to [`FromStr`], in addition it may return type
@@ -44,10 +44,17 @@ where
 {
     #[inline]
     fn from_arg(arg: &str) -> Result<Self> {
-        T::from_str(arg).map_err(|e| ArgError::FailedToParse {
-            typ: type_name::<T>(),
-            value: arg.to_owned().into(),
-            msg: Some(format!("{e}").into()),
+        T::from_str(arg).map_err(|e| {
+            ArgError::FailedToParse(ArgErrCtx {
+                args: vec![arg.into()],
+                error_idx: 0,
+                error_span: 0..arg.len(),
+                message: e.to_string().into(),
+                long_message: Some(
+                    format!("Failed to parse the value `{arg}`: {e}.").into(),
+                ),
+                hint: None,
+            })
         })
     }
 }
