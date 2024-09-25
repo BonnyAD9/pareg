@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.5.1
+- Fix dependencies
+
 ## v0.5.0
 - Very user friendly error messages.
 - Remove `ArgIterator` in favor of `Pareg`. They both have very similar
