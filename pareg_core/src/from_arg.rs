@@ -45,16 +45,20 @@ where
     #[inline]
     fn from_arg(arg: &str) -> Result<Self> {
         T::from_str(arg).map_err(|e| {
-            ArgError::FailedToParse(ArgErrCtx {
-                args: vec![arg.into()],
-                error_idx: 0,
-                error_span: 0..arg.len(),
-                message: e.to_string().into(),
-                long_message: Some(
-                    format!("Failed to parse the value `{arg}`: {e}.").into(),
-                ),
-                hint: None,
-            })
+            ArgError::FailedToParse(
+                ArgErrCtx {
+                    args: vec![arg.into()],
+                    error_idx: 0,
+                    error_span: 0..arg.len(),
+                    message: e.to_string().into(),
+                    long_message: Some(
+                        format!("Failed to parse the value `{arg}`: {e}.")
+                            .into(),
+                    ),
+                    hint: None,
+                }
+                .into(),
+            )
         })
     }
 }

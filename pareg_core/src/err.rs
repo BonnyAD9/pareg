@@ -10,16 +10,16 @@ pub type Result<T> = std::result::Result<T, ArgError>;
 pub enum ArgError {
     /// There was an unknown argument.
     #[error("{0}")]
-    UnknownArgument(ArgErrCtx),
+    UnknownArgument(Box<ArgErrCtx>),
     /// Expected another argument but there were no more arguments.
     #[error("{0}")]
-    NoMoreArguments(ArgErrCtx),
+    NoMoreArguments(Box<ArgErrCtx>),
     /// Failed to parse a string value into a type.
     #[error("{0}")]
-    FailedToParse(ArgErrCtx),
+    FailedToParse(Box<ArgErrCtx>),
     /// There was no value in a key-value pair.
     #[error("{0}")]
-    NoValue(ArgErrCtx),
+    NoValue(Box<ArgErrCtx>),
     /// This error happens when you call any of the `cur_*` methods on
     /// [`crate::Pareg`]. It is not ment to happen in argument parsing and it
     /// may indicate that you have bug in your parsing.
@@ -36,10 +36,14 @@ pub enum ArgError {
 macro_rules! map_ctx {
     ($err:expr, $ctx:ident => $map:expr) => {
         match $err {
-            ArgError::UnknownArgument($ctx) => ArgError::UnknownArgument($map),
-            ArgError::NoMoreArguments($ctx) => ArgError::NoMoreArguments($map),
-            ArgError::FailedToParse($ctx) => ArgError::FailedToParse($map),
-            ArgError::NoValue($ctx) => ArgError::NoValue($map),
+            ArgError::UnknownArgument(mut $ctx) => {
+                ArgError::UnknownArgument($map)
+            }
+            ArgError::NoMoreArguments(mut $ctx) => {
+                ArgError::NoMoreArguments($map)
+            }
+            ArgError::FailedToParse(mut $ctx) => ArgError::FailedToParse($map),
+            ArgError::NoValue(mut $ctx) => ArgError::NoValue($map),
             ArgError::NoLastArgument => ArgError::NoLastArgument,
         }
     };
@@ -49,18 +53,27 @@ impl ArgError {
     /// Moves the span in the error message by `cnt` and changes the
     /// errornous argument to `new_arg`.
     pub fn shift_span(self, cnt: usize, new_arg: String) -> Self {
-        map_ctx!(self, ctx => ctx.shift_span(cnt, new_arg))
+        map_ctx!(self, ctx => {
+            *ctx = ctx.shift_span(cnt, new_arg);
+            ctx
+        })
     }
 
     /// Add arguments to the error so that it may have better error message.
     /// Mostly useful internaly in pareg.
     pub fn add_args(self, args: Vec<String>, idx: usize) -> Self {
-        map_ctx!(self, ctx => ctx.add_args(args, idx))
+        map_ctx!(self, ctx => {
+            *ctx = ctx.add_args(args, idx);
+            ctx
+        })
     }
 
     /// Adds hint to the error message.
     pub fn hint(self, hint: impl Into<Cow<'static, str>>) -> Self {
-        map_ctx!(self, ctx => ctx.hint(hint))
+        map_ctx!(self, ctx => {
+            *ctx = ctx.hint(hint);
+            ctx
+        })
     }
 }
 

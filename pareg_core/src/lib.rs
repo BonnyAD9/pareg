@@ -664,7 +664,7 @@ impl Pareg {
             long_message,
             hint: None,
         };
-        ArgError::UnknownArgument(context)
+        ArgError::UnknownArgument(context.into())
     }
 
     /// Creates pretty error that there should be more arguments but there are
@@ -682,7 +682,7 @@ impl Pareg {
             long_message,
             hint: None,
         };
-        ArgError::NoMoreArguments(context)
+        ArgError::NoMoreArguments(context.into())
     }
 
     /// Adds additional information to error so that it has better error

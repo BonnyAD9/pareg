@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## future
+- Make errors store box of ErrCtx to reduce the size of the results.
+
 ## v0.5.1
 - Fix dependencies
 

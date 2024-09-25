@@ -78,7 +78,7 @@ where
             message: format!("Missing separator `{sep}`.").into(),
             long_message: Some(format!("Missing separator `{sep}` for key value pair.").into()),
             hint: Some(format!("Use the separator `{sep}` to split the argument into key and value.").into()),
-        }));
+        }.into()));
     };
 
     Ok((
@@ -108,14 +108,17 @@ pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
     } else if lower == f {
         Ok(false)
     } else {
-        Err(ArgError::FailedToParse(ArgErrCtx {
-            args: vec![arg.into()],
-            error_idx: 0,
-            error_span: 0..arg.len(),
-            message: "Invalid value.".into(),
-            long_message: Some(format!("Invalid value `{arg}`").into()),
-            hint: Some(format!("Expected `{t}` or `{f}`").into()),
-        }))
+        Err(ArgError::FailedToParse(
+            ArgErrCtx {
+                args: vec![arg.into()],
+                error_idx: 0,
+                error_span: 0..arg.len(),
+                message: "Invalid value.".into(),
+                long_message: Some(format!("Invalid value `{arg}`").into()),
+                hint: Some(format!("Expected `{t}` or `{f}`").into()),
+            }
+            .into(),
+        ))
     }
 }
 
@@ -154,14 +157,17 @@ pub fn opt_bool_arg(
     } else if lower == n {
         Ok(None)
     } else {
-        Err(ArgError::FailedToParse(ArgErrCtx {
-            args: vec![arg.into()],
-            error_idx: 0,
-            error_span: 0..arg.len(),
-            message: "Invalid value.".into(),
-            long_message: Some(format!("Invalid value `{arg}`").into()),
-            hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
-        }))
+        Err(ArgError::FailedToParse(
+            ArgErrCtx {
+                args: vec![arg.into()],
+                error_idx: 0,
+                error_span: 0..arg.len(),
+                message: "Invalid value.".into(),
+                long_message: Some(format!("Invalid value `{arg}`").into()),
+                hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
+            }
+            .into(),
+        ))
     }
 }
 

@@ -76,9 +76,11 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
                             error_idx: 0,
                             error_span: 0..arg.len(),
                             message: "Unknown option.".into(),
-                            long_message: Some(format!("Unknown option `{arg}`.").into()),
+                            long_message: Some(
+                                format!("Unknown option `{arg}`.").into()
+                            ),
                             hint: Some(#hint.into()),
-                        }))
+                        }.into()))
                     },
                 }
             }
