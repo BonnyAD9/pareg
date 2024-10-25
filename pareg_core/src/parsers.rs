@@ -2,7 +2,7 @@ use crate::{
     arg_into::ArgInto,
     err::{ArgError, Result},
     from_arg::FromArg,
-    ArgErrCtx,
+    ArgErrCtx, ColorMode,
 };
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
@@ -78,6 +78,7 @@ where
             message: format!("Missing separator `{sep}`.").into(),
             long_message: Some(format!("Missing separator `{sep}` for key value pair.").into()),
             hint: Some(format!("Use the separator `{sep}` to split the argument into key and value.").into()),
+            color: ColorMode::default(),
         }.into()));
     };
 
@@ -116,6 +117,7 @@ pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
                 message: "Invalid value.".into(),
                 long_message: Some(format!("Invalid value `{arg}`").into()),
                 hint: Some(format!("Expected `{t}` or `{f}`").into()),
+                color: ColorMode::default(),
             }
             .into(),
         ))
@@ -165,6 +167,7 @@ pub fn opt_bool_arg(
                 message: "Invalid value.".into(),
                 long_message: Some(format!("Invalid value `{arg}`").into()),
                 hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
+                color: ColorMode::default(),
             }
             .into(),
         ))

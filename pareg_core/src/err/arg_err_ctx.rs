@@ -1,5 +1,9 @@
 use std::{borrow::Cow, collections::VecDeque, fmt::Display, ops::Range};
 
+use termal::{writemc, writemcln};
+
+use super::ColorMode;
+
 /// Information about error in command line arguments. Implements [`Display`]
 /// with user friendly error messages.
 #[derive(Debug)]
@@ -16,6 +20,8 @@ pub struct ArgErrCtx {
     pub long_message: Option<Cow<'static, str>>,
     /// Hint about how to fix the error.
     pub hint: Option<Cow<'static, str>>,
+    /// Determines when color should be used.
+    pub color: ColorMode,
 }
 
 impl ArgErrCtx {
@@ -28,6 +34,7 @@ impl ArgErrCtx {
             long_message: Some(message.clone()),
             message,
             hint: None,
+            color: ColorMode::default(),
         }
     }
 
@@ -65,6 +72,7 @@ impl Display for ArgErrCtx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         const MAX_WIDTH: usize = 80;
         const WIDTH: usize = MAX_WIDTH - 11;
+        let color = self.color.use_color();
 
         let args = vec!["".to_string()];
         let args = if self.args.is_empty() {
@@ -78,13 +86,20 @@ impl Display for ArgErrCtx {
 
         let long_message = self.long_message.as_ref().unwrap_or(&self.message);
 
-        writeln!(f, "argument error: {long_message}")?;
-        writeln!(
+        writemcln!(
             f,
-            "--> arg{}:{}..{}",
-            error_idx, self.error_span.start, self.error_span.end
+            color,
+            "{'r}argument error:{'_ bold} {long_message}{'_}"
         )?;
-        writeln!(f, " |")?;
+        writemcln!(
+            f,
+            color,
+            "{'b}--> {'_}arg{}:{}..{}",
+            error_idx,
+            self.error_span.start,
+            self.error_span.end
+        )?;
+        writemcln!(f, color, "{'b} |{'_}")?;
 
         let mut to_print = VecDeque::new();
         to_print.push_back(error_idx);
@@ -122,10 +137,10 @@ impl Display for ArgErrCtx {
         }
 
         let mut err_pos = if start_idx == 0 {
-            write!(f, " $ ")?;
+            writemc!(f, color, " {'b}${'_} ")?;
             3
         } else {
-            write!(f, " $ ... ")?;
+            writemc!(f, color, " {'b}$ {'gr}...{'_} ")?;
             7
         };
 
@@ -149,22 +164,25 @@ impl Display for ArgErrCtx {
         }
 
         if end_idx != args.len() - 1 {
-            writeln!(f, " ...")?;
+            writemcln!(f, color, " {'gr}...{'_}")?;
         } else {
             writeln!(f)?;
         }
 
         err_pos -= 2;
         let err_len = self.error_span.len();
-        writeln!(
+        writemcln!(
             f,
-            " |{: >err_pos$}{:^>err_len$} {}",
-            ' ', '^', self.message
+            color,
+            " {'b}|{: >err_pos$}{'r}{:^>err_len$} {}{'_}",
+            ' ',
+            '^',
+            self.message
         )?;
         let Some(hint) = &self.hint else {
             return Ok(());
         };
 
-        writeln!(f, "hint: {hint}")
+        writemcln!(f, color, "{'c}hint:{'_} {hint}")
     }
 }

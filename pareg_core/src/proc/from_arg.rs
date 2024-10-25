@@ -80,6 +80,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
                                 format!("Unknown option `{arg}`.").into()
                             ),
                             hint: Some(#hint.into()),
+                            color: Default::default(),
                         }.into()))
                     },
                 }

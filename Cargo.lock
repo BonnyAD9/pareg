@@ -3,6 +3,36 @@
 version = 3
 
 [[package]]
+name = "bitflags"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
+
+[[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.161"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
+
+[[package]]
+name = "litrs"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
 name = "pareg"
 version = "0.5.1"
 dependencies = [
@@ -17,6 +47,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "termal",
  "thiserror",
 ]
 
@@ -25,6 +56,36 @@ name = "pareg_proc"
 version = "0.5.0"
 dependencies = [
  "pareg_core",
+]
+
+[[package]]
+name = "place_macro"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ded910602eebb5e39317d37dbfa6f2f470b5759d0e06b456e940207c861f17aa"
+dependencies = [
+ "place_macro_proc",
+]
+
+[[package]]
+name = "place_macro_core"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15a4aeb20828217e746ffbeba3120133961b4fc699995589443a386a78918e9d"
+dependencies = [
+ "convert_case",
+ "litrs",
+ "proc-macro2",
+]
+
+[[package]]
+name = "place_macro_proc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "278f0d63044c8f6a1e19d3c20b8ef2de4b5a0a845f5e42ab20d5a8bcb98755ab"
+dependencies = [
+ "place_macro_core",
+ "proc-macro2",
 ]
 
 [[package]]
@@ -57,6 +118,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "termal"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8613da4a68d5728bbbcde4b7655d06056f0d481fa991257e24b68c1b25b21505"
+dependencies = [
+ "termal_core",
+ "termal_proc",
+]
+
+[[package]]
+name = "termal_core"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3628d8021a4510166b52ea1d1124891516a078a214444d30806c1afc9234bda0"
+dependencies = [
+ "bitflags",
+ "libc",
+ "litrs",
+ "place_macro",
+ "proc-macro2",
+ "thiserror",
+]
+
+[[package]]
+name = "termal_proc"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4edce9a93af8e642b32bbf8245abd6678193b5c059b6c4f59c5eca3e6d6f4db"
+dependencies = [
+ "termal_core",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -81,3 +175,9 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"

@@ -663,6 +663,7 @@ impl Pareg {
             message: "Unknown argument.".into(),
             long_message,
             hint: None,
+            color: ColorMode::default(),
         };
         ArgError::UnknownArgument(context.into())
     }
@@ -681,6 +682,7 @@ impl Pareg {
             message: "Expected more arguments.".into(),
             long_message,
             hint: None,
+            color: ColorMode::default(),
         };
         ArgError::NoMoreArguments(context.into())
     }
