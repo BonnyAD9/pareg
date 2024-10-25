@@ -58,6 +58,18 @@ impl Pareg {
         (self.cur != 0).then_some(&self.args[self.cur - 1])
     }
 
+    pub fn all_args(&self) -> &[String] {
+        &self.args
+    }
+
+    pub fn remaining(&self) -> &[String] {
+        &self.args[self.cur + 1..]
+    }
+
+    pub fn cur_remaining(&self) -> &[String] {
+        &self.args[self.cur..]
+    }
+
     /// Perform manual parsing on the next argument. This is will make the
     /// errors have better messages than just doing the parsing without
     /// [`Pareg`].
