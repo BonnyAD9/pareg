@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.5.2
 - Make errors store box of ErrCtx to reduce the size of the results.
 - Add colors to errors (modify defaults with features).
 
