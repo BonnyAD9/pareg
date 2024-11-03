@@ -26,7 +26,11 @@ pub struct ArgErrCtx {
 
 impl ArgErrCtx {
     /// Creates simple error with just message and the errornous argument.
-    pub fn from_msg(message: Cow<'static, str>, arg: String) -> Self {
+    pub fn from_msg(
+        message: impl Into<Cow<'static, str>>,
+        arg: String,
+    ) -> Self {
+        let message = message.into();
         Self {
             error_span: 0..arg.len(),
             args: vec![arg],
@@ -64,6 +68,12 @@ impl ArgErrCtx {
     /// Adds hint to the error message.
     pub fn hint(mut self, hint: impl Into<Cow<'static, str>>) -> Self {
         self.hint = Some(hint.into());
+        self
+    }
+
+    /// Adds span to the error message.
+    pub fn spanned(mut self, span: Range<usize>) -> Self {
+        self.error_span = span;
         self
     }
 }

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Range};
 
 use thiserror::Error;
 
@@ -19,6 +19,8 @@ pub enum ArgError {
     /// There was no value in a key-value pair.
     #[error("{0}")]
     NoValue(Box<ArgErrCtx>),
+    #[error("{0}")]
+    InvalidValue(Box<ArgErrCtx>),
     /// This error happens when you call any of the `cur_*` methods on
     /// [`crate::Pareg`]. It is not ment to happen in argument parsing and it
     /// may indicate that you have bug in your parsing.
@@ -50,6 +52,11 @@ impl ArgError {
         self.map_ctx(|c| c.hint(hint))
     }
 
+    /// Adds span to the error message.
+    pub fn spanned(self, span: Range<usize>) -> Self {
+        self.map_ctx(|c| c.spanned(span))
+    }
+
     pub fn map_ctx(self, f: impl FnOnce(ArgErrCtx) -> ArgErrCtx) -> Self {
         match self {
             ArgError::UnknownArgument(mut ctx) => {
@@ -67,6 +74,10 @@ impl ArgError {
             ArgError::NoValue(mut ctx) => {
                 *ctx = f(*ctx);
                 ArgError::NoValue(ctx)
+            }
+            ArgError::InvalidValue(mut ctx) => {
+                *ctx = f(*ctx);
+                ArgError::InvalidValue(ctx)
             }
             ArgError::NoLastArgument => ArgError::NoLastArgument,
         }

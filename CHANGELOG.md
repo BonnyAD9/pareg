@@ -1,7 +1,11 @@
 # CHANGELOG
 
 ## Future
-- Add `cur_val_or_next`.
+- Add `cur_val_or_next` to `Pareg`.
+- Add new error for checking value validity `ArgError::InvalidValue`.
+- Add `err_invalid`, `err_invalid_value` and `err_invalid_span` to `Pareg`.
+- Make `ArgErrCtx::from_msg` take `impl Into<Cow>` instead of `String`.
+- Add `ArgErrCtx::spanned` and `ArgError::spanned`.
 
 ## v0.5.2
 - Make errors store box of ErrCtx to reduce the size of the results.

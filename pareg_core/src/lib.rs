@@ -9,7 +9,7 @@ mod starts;
 
 pub use crate::{arg_into::*, by_ref::*, err::*, from_arg::*, parsers::*};
 
-use std::env;
+use std::{env, ops::Range};
 
 /// Helper for parsing arguments.
 pub struct Pareg {
@@ -741,6 +741,38 @@ impl Pareg {
             color: ColorMode::default(),
         };
         ArgError::NoMoreArguments(context.into())
+    }
+
+    /// Creates error that says that the current argument has invalid value.
+    pub fn err_invalid(&self) -> ArgError {
+        self.err_invalid_value(self.cur().unwrap_or_default().to_owned())
+    }
+
+    /// Creates error that says that the given part of the current argument has
+    /// invalid value.
+    pub fn err_invalid_value(&self, value: String) -> ArgError {
+        ArgError::InvalidValue(Box::new(ArgErrCtx::from_msg(
+            "Invalid value for argument.",
+            value,
+        )))
+        .add_args(self.args.clone(), self.cur.saturating_sub(1))
+    }
+
+    /// Creates error that says that the given part of the current argument has
+    /// invalid value.
+    pub fn err_invalid_span(&self, span: Range<usize>) -> ArgError {
+        let value = self.cur().unwrap_or_default();
+        if span.start >= value.len() || span.end > value.len() {
+            self.err_invalid_value(value.to_owned())
+        } else {
+            ArgError::InvalidValue(Box::new(
+                ArgErrCtx::from_msg(
+                    "Invalid value for argument.",
+                    value[span.clone()].to_owned(),
+                )
+                .spanned(span),
+            ))
+        }
     }
 
     /// Adds additional information to error so that it has better error
