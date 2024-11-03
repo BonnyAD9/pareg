@@ -58,14 +58,17 @@ impl Pareg {
         (self.cur != 0).then_some(&self.args[self.cur - 1])
     }
 
+    /// Gets all the arguments (including the first one).
     pub fn all_args(&self) -> &[String] {
         &self.args
     }
 
+    /// Gets the remaining arguments (not including the current).
     pub fn remaining(&self) -> &[String] {
         &self.args[self.cur + 1..]
     }
 
+    /// Gets the remaining arguments (including the current).
     pub fn cur_remaining(&self) -> &[String] {
         &self.args[self.cur..]
     }
@@ -762,7 +765,7 @@ impl Pareg {
     /// invalid value.
     pub fn err_invalid_span(&self, span: Range<usize>) -> ArgError {
         let value = self.cur().unwrap_or_default();
-        if span.start >= value.len() || span.end > value.len() {
+        if span.start > value.len() || span.end > value.len() {
             self.err_invalid_value(value.to_owned())
         } else {
             ArgError::InvalidValue(Box::new(

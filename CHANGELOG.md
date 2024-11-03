@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## Future
+- Add `all_arg`, `remaining` and `cur_remaining` to `Pareg`.
 - Add `cur_val_or_next` to `Pareg`.
 - Add new error for checking value validity `ArgError::InvalidValue`.
 - Add `err_invalid`, `err_invalid_value` and `err_invalid_span` to `Pareg`.
