@@ -662,6 +662,50 @@ impl Pareg {
         self.map_err(mval_arg(self.cur_arg()?, sep))
     }
 
+    /// Split the current argument by the given separator and return the parsed
+    /// value after the separator or if there is no such separator, parse the
+    /// next argument.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use pareg_core::Pareg;
+    ///
+    /// let args = ["--cnt", "20", "--cnt=10"];
+    /// let mut args = Pareg::new(args.iter().map(|a| a.to_string()).collect());
+    ///
+    /// args.next();
+    /// assert_eq!(
+    ///     20,
+    ///     args.cur_val_or_next::<u32>('=').unwrap()
+    /// );
+    /// args.next();
+    /// assert_eq!(
+    ///     10,
+    ///     args.cur_val_or_next::<u32>('=').unwrap()
+    /// );
+    /// ```
+    pub fn cur_val_or_next<'a, T>(&'a mut self, sep: char) -> Result<T>
+    where
+        T: FromArg<'a>,
+    {
+        // Bug in rust is the reason for this complicated implementation.
+        let Some(c) = (self.cur != 0).then_some(&self.args[self.cur - 1])
+        else {
+            return Err(ArgError::NoLastArgument);
+        };
+
+        if let Some((k, v)) = c.split_once(sep) {
+            T::from_arg(v).map_err(|e| {
+                e.shift_span(k.len() + sep.len_utf8(), c.to_string())
+            })
+        } else if self.cur < self.args.len() {
+            self.cur += 1;
+            self.map_err(T::from_arg(self.cur().unwrap().by_ref()))
+        } else {
+            Err(self.err_no_more_arguments())
+        }
+    }
+
     /// Creates pretty error that the last argument (cur) is unknown.
     pub fn err_unknown_argument(&self) -> ArgError {
         let arg = self.cur().unwrap_or("");

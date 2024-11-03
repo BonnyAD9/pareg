@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Future
+- Add `cur_val_or_next`.
+
 ## v0.5.2
 - Make errors store box of ErrCtx to reduce the size of the results.
 - Add colors to errors (modify defaults with features).
