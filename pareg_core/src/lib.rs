@@ -42,20 +42,15 @@ impl Pareg {
     }
 
     /// Get the next argument
-    #[allow(clippy::should_implement_trait)] // Iterator impl is not possible
+    // Iterator impl is not possible because the returned values are borrowed.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<&str> {
-        if self.cur >= self.args.len() {
-            None
-        } else {
-            let res = &self.args[self.cur];
-            self.cur += 1;
-            Some(res)
-        }
+        next_inner(&self.args, &mut self.cur)
     }
 
     /// Get the last returned argument.
     pub fn cur(&self) -> Option<&str> {
-        (self.cur != 0).then_some(&self.args[self.cur - 1])
+        cur_inner(&self.args, self.cur)
     }
 
     /// Gets all the arguments (including the first one).
@@ -147,12 +142,7 @@ impl Pareg {
     where
         T: FromArg<'a>,
     {
-        // Bug in rust, that is the reason for not using if let Some
-        if self.next().is_some() {
-            self.map_err(T::from_arg(self.cur().unwrap().by_ref()))
-        } else {
-            Err(self.err_no_more_arguments())
-        }
+        next_arg_inner(&self.args, &mut self.cur)
     }
 
     /// Uses the function [`key_mval_arg`] on the next argument.
@@ -408,11 +398,7 @@ impl Pareg {
     where
         T: FromArg<'a>,
     {
-        if let Some(arg) = self.cur() {
-            self.map_err(T::from_arg(arg))
-        } else {
-            Err(ArgError::NoLastArgument)
-        }
+        cur_arg_inner(&self.args, self.cur)
     }
 
     /// Uses the function [`key_mval_arg`] on the last argument. If there is no
@@ -585,7 +571,7 @@ impl Pareg {
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_key<'a, T>(&'a mut self, sep: char) -> Result<T>
+    pub fn cur_key<'a, T>(&'a self, sep: char) -> Result<T>
     where
         T: FromArg<'a>,
     {
@@ -619,7 +605,7 @@ impl Pareg {
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_val<'a, T>(&'a mut self, sep: char) -> Result<T>
+    pub fn cur_val<'a, T>(&'a self, sep: char) -> Result<T>
     where
         T: FromArg<'a>,
     {
@@ -658,11 +644,11 @@ impl Pareg {
     /// );
     /// ```
     #[inline(always)]
-    pub fn cur_mval<'a, T>(&'a mut self, sep: char) -> Result<Option<T>>
+    pub fn cur_mval<'a, T>(&'a self, sep: char) -> Result<Option<T>>
     where
         T: FromArg<'a>,
     {
-        self.map_err(mval_arg(self.cur_arg()?, sep))
+        cur_mval_inner(&self.args, self.cur, sep)
     }
 
     /// Split the current argument by the given separator and return the parsed
@@ -691,21 +677,10 @@ impl Pareg {
     where
         T: FromArg<'a>,
     {
-        // Bug in rust is the reason for this complicated implementation.
-        let Some(c) = (self.cur != 0).then_some(&self.args[self.cur - 1])
-        else {
-            return Err(ArgError::NoLastArgument);
-        };
-
-        if let Some((k, v)) = c.split_once(sep) {
-            T::from_arg(v).map_err(|e| {
-                e.shift_span(k.len() + sep.len_utf8(), c.to_string())
-            })
-        } else if self.cur < self.args.len() {
-            self.cur += 1;
-            self.map_err(T::from_arg(self.cur().unwrap().by_ref()))
+        if let Some(res) = cur_mval_inner(&self.args, self.cur, sep)? {
+            Ok(res)
         } else {
-            Err(self.err_no_more_arguments())
+            next_arg_inner(&self.args, &mut self.cur)
         }
     }
 
@@ -796,8 +771,78 @@ impl Pareg {
     /// assert_eq!((10, 0.25), res);
     /// ```
     pub fn map_err<T>(&self, res: Result<T>) -> Result<T> {
-        res.map_err(|e| {
-            e.add_args(self.args.clone(), self.cur.saturating_sub(1))
-        })
+        map_err_inner(&self.args, self.cur, res)
     }
+}
+
+#[inline(always)]
+fn cur_inner(args: &[String], cur: usize) -> Option<&str> {
+    (cur != 0).then_some(&args[cur - 1])
+}
+
+#[inline(always)]
+fn cur_arg_inner<'a, T>(args: &'a [String], cur: usize) -> Result<T>
+where
+    T: FromArg<'a>,
+{
+    if let Some(arg) = cur_inner(args, cur) {
+        map_err_inner(args, cur, T::from_arg(arg))
+    } else {
+        Err(ArgError::NoLastArgument)
+    }
+}
+
+#[inline(always)]
+fn next_inner<'a>(args: &'a [String], cur: &mut usize) -> Option<&'a str> {
+    (*cur < args.len()).then(|| {
+        let res = &args[*cur];
+        *cur += 1;
+        res.as_str()
+    })
+}
+
+#[inline(always)]
+fn next_arg_inner<'a, T>(args: &'a [String], cur: &mut usize) -> Result<T>
+where
+    T: FromArg<'a>,
+{
+    if let Some(a) = next_inner(args, cur) {
+        map_err_inner(args, *cur, a.arg_into())
+    } else {
+        Err(err_no_more_arguments_inner(args))
+    }
+}
+
+#[inline(always)]
+pub fn cur_mval_inner<'a, T>(
+    args: &'a [String],
+    cur: usize,
+    sep: char,
+) -> Result<Option<T>>
+where
+    T: FromArg<'a>,
+{
+    map_err_inner(args, cur, mval_arg(cur_arg_inner(args, cur)?, sep))
+}
+
+#[inline(always)]
+fn map_err_inner<T>(args: &[String], cur: usize, res: Result<T>) -> Result<T> {
+    res.map_err(|e| e.add_args(args.into(), cur.saturating_sub(1)))
+}
+
+pub fn err_no_more_arguments_inner(args: &[String]) -> ArgError {
+    let pos = args.last().map_or(0, |a| a.len());
+    let long_message = args.last().map(|a| {
+        format!("Expected more arguments after the argument `{a}`.").into()
+    });
+    let context = ArgErrCtx {
+        args: args.into(),
+        error_idx: args.len() - 1,
+        error_span: pos..pos,
+        message: "Expected more arguments.".into(),
+        long_message,
+        hint: None,
+        color: ColorMode::default(),
+    };
+    ArgError::NoMoreArguments(context.into())
 }
