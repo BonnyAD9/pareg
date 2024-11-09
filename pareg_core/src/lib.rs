@@ -704,21 +704,9 @@ impl Pareg {
 
     /// Creates pretty error that there should be more arguments but there are
     /// no more arguments.
+    #[inline(always)]
     pub fn err_no_more_arguments(&self) -> ArgError {
-        let pos = self.args.last().map_or(0, |a| a.len());
-        let long_message = self.args.last().map(|a| {
-            format!("Expected more arguments after the argument `{a}`.").into()
-        });
-        let context = ArgErrCtx {
-            args: self.args.clone(),
-            error_idx: self.args.len() - 1,
-            error_span: pos..pos,
-            message: "Expected more arguments.".into(),
-            long_message,
-            hint: None,
-            color: ColorMode::default(),
-        };
-        ArgError::NoMoreArguments(context.into())
+        err_no_more_arguments_inner(&self.args)
     }
 
     /// Creates error that says that the current argument has invalid value.
