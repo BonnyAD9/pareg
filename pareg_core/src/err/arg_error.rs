@@ -19,6 +19,7 @@ pub enum ArgError {
     /// There was no value in a key-value pair.
     #[error("{0}")]
     NoValue(Box<ArgErrCtx>),
+    /// The value of argument was invalid.
     #[error("{0}")]
     InvalidValue(Box<ArgErrCtx>),
     /// This error happens when you call any of the `cur_*` methods on
