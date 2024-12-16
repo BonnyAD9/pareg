@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Range};
 
 use thiserror::Error;
 
-use super::ArgErrCtx;
+use super::{ArgErrCtx, Result};
 
 /// Errors thrown when parsing arguments.
 #[derive(Debug, Error)]
@@ -36,6 +36,11 @@ pub enum ArgError {
 }
 
 impl ArgError {
+    /// Shortcut for creating parse error.
+    pub fn parse_msg(msg: impl Into<Cow<'static, str>>, arg: String) -> Self {
+        Self::FailedToParse(Box::new(ArgErrCtx::from_msg(msg, arg)))
+    }
+
     /// Moves the span in the error message by `cnt` and changes the
     /// errornous argument to `new_arg`.
     pub fn shift_span(self, cnt: usize, new_arg: String) -> Self {
@@ -56,6 +61,27 @@ impl ArgError {
     /// Adds span to the error message.
     pub fn spanned(self, span: Range<usize>) -> Self {
         self.map_ctx(|c| c.spanned(span))
+    }
+
+    /// Sets the short message that is inlined with the code.
+    pub fn inline_msg(self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.map_ctx(|c| c.inline_msg(msg))
+    }
+
+    /// Sets the primary (non inline) message.
+    pub fn main_msg(self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.map_ctx(|c| c.main_msg(msg))
+    }
+
+    /// Sets new argument. If the original argument is substring of this,
+    /// span will be adjusted.
+    pub fn part_of(self, arg: String) -> Self {
+        self.map_ctx(|c| c.part_of(arg))
+    }
+
+    /// Helper method to wrap this in error and make it a result.
+    pub fn err<T>(self) -> Result<T> {
+        Err(self)
     }
 
     pub fn map_ctx(self, f: impl FnOnce(ArgErrCtx) -> ArgErrCtx) -> Self {

@@ -1,12 +1,16 @@
 # CHANGELOG
 
-## Future
+## v0.6.0
 - Add `all_arg`, `remaining` and `cur_remaining` to `Pareg`.
 - Add `cur_val_or_next` to `Pareg`.
 - Add new error for checking value validity `ArgError::InvalidValue`.
 - Add `err_invalid`, `err_invalid_value` and `err_invalid_span` to `Pareg`.
 - Make `ArgErrCtx::from_msg` take `impl Into<Cow>` instead of `String`.
 - Add `ArgErrCtx::spanned` and `ArgError::spanned`.
+- Add `ArgErrCtx::from_inner`.
+- Add `part_of`, `inline_msg` and `main_msg` to `ArgErrCtx` and `ArgError`.
+- Add `parse_msg` and `err` to `ArgError`
+- Require `FromArg` to return `Result<ArgError, T>`
 - Remove unncesary mut requirements on `Pareg`.
 
 ## v0.5.2

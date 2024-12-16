@@ -25,18 +25,21 @@ pub struct ArgErrCtx {
 }
 
 impl ArgErrCtx {
+    pub fn from_inner<E: Display>(e: E, arg: String) -> Self {
+        Self::from_msg(e.to_string(), arg)
+    }
+
     /// Creates simple error with just message and the errornous argument.
     pub fn from_msg(
         message: impl Into<Cow<'static, str>>,
         arg: String,
     ) -> Self {
-        let message = message.into();
         Self {
             error_span: 0..arg.len(),
             args: vec![arg],
             error_idx: 0,
-            long_message: Some(message.clone()),
-            message,
+            long_message: None,
+            message: message.into(),
             hint: None,
             color: ColorMode::default(),
         }
@@ -48,6 +51,22 @@ impl ArgErrCtx {
         self.error_span.start += cnt;
         self.error_span.end += cnt;
         self.args[self.error_idx] = new_arg;
+        self
+    }
+
+    /// Sets new argument. If the original argument is substring of this,
+    /// span will be adjusted.
+    pub fn part_of(mut self, arg: String) -> Self {
+        if self.args[self.error_idx].len() == arg.len() {
+            self.error_span = 0..arg.len();
+            self.args[self.error_idx] = arg;
+            return self;
+        }
+        if let Some(shift) = arg.find(&self.args[self.error_idx]) {
+            self.error_span.start += shift;
+            self.error_span.end += shift;
+        }
+        self.args[self.error_idx] = arg;
         self
     }
 
@@ -74,6 +93,18 @@ impl ArgErrCtx {
     /// Adds span to the error message.
     pub fn spanned(mut self, span: Range<usize>) -> Self {
         self.error_span = span;
+        self
+    }
+
+    /// Sets the short message that is inlined with the code.
+    pub fn inline_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.message = msg.into();
+        self
+    }
+
+    /// Sets the primary (non inline) message.
+    pub fn main_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.long_message = Some(msg.into());
         self
     }
 }

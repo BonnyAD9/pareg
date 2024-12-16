@@ -1,7 +1,6 @@
 use std::{
     borrow::Cow,
     ffi::{OsStr, OsString},
-    fmt::Display,
     net::{
         IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6,
     },
@@ -14,7 +13,7 @@ use std::{
 use crate::{
     err::{ArgError, Result},
     impl_all::impl_all,
-    ArgErrCtx, ColorMode,
+    ArgErrCtx,
 };
 
 /// Represents a trait similar to [`FromStr`], in addition it may return type
@@ -35,40 +34,32 @@ pub trait FromArg<'a>: Sized {
 }
 
 /// Default implementation for [`FromArg`] for types that implement [`FromStr`]
-pub trait FromArgStr: FromStr {}
+pub trait FromArgStr: FromStr<Err = ArgError> {}
 
-impl<'a, T> FromArg<'a> for T
+impl<T> FromArg<'_> for T
 where
     T: FromArgStr,
-    T::Err: Display,
 {
     #[inline]
     fn from_arg(arg: &str) -> Result<Self> {
-        T::from_str(arg).map_err(|e| {
-            ArgError::FailedToParse(
-                ArgErrCtx {
-                    args: vec![arg.into()],
-                    error_idx: 0,
-                    error_span: 0..arg.len(),
-                    message: e.to_string().into(),
-                    long_message: Some(
-                        format!("Failed to parse the value `{arg}`: {e}.")
-                            .into(),
-                    ),
-                    hint: None,
-                    color: ColorMode::default(),
-                }
-                .into(),
-            )
-        })
+        T::from_str(arg)
     }
 }
 
-impl_all! { FromArgStr:
+impl_all! { impl<'a> FromArg<'a>:
     u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, f32, f64, usize, isize,
     bool, char, String, PathBuf, OsString, IpAddr, SocketAddr, Ipv4Addr,
     Ipv6Addr, SocketAddrV4, SocketAddrV6,
-    => {}
+    => {
+        #[inline(always)]
+        fn from_arg(arg: &'a str) -> Result<Self> {
+            Self::from_str(arg).map_err(|e| {
+                ArgError::FailedToParse(Box::new(
+                    ArgErrCtx::from_inner(e, arg.to_string())
+                ))
+            })
+        }
+    }
 }
 
 impl<'a> FromArg<'a> for &'a str {
