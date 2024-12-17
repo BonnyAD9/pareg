@@ -60,7 +60,7 @@ impl Pareg {
 
     /// Gets the remaining arguments (not including the current).
     pub fn remaining(&self) -> &[String] {
-        &self.args[self.cur + 1..]
+        &self.args[self.args.len().min(self.cur + 1)..]
     }
 
     /// Gets the remaining arguments (including the current).

@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.6.1
+- Fix panic in `Pareg::remaining`.
+
 ## v0.6.0
 - Add `all_arg`, `remaining` and `cur_remaining` to `Pareg`.
 - Add `cur_val_or_next` to `Pareg`.
