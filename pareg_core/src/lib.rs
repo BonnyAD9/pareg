@@ -60,12 +60,12 @@ impl Pareg {
 
     /// Gets the remaining arguments (not including the current).
     pub fn remaining(&self) -> &[String] {
-        &self.args[self.args.len().min(self.cur + 1)..]
+        &self.args[self.cur..]
     }
 
     /// Gets the remaining arguments (including the current).
     pub fn cur_remaining(&self) -> &[String] {
-        &self.args[self.cur..]
+        &self.args[self.cur.saturating_sub(1)..]
     }
 
     /// Perform manual parsing on the next argument. This is will make the

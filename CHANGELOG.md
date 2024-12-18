@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Future
+- Fix `Pareg::remaining` and `Pareg::cur_remaining`
+
 ## v0.6.1
 - Fix panic in `Pareg::remaining`.
 
