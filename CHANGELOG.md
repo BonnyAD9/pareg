@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## Future
++ Add `Pareg::skip` and `Pareg::skip_all`
 - Fix `Pareg::remaining` and `Pareg::cur_remaining`
 
 ## v0.6.1

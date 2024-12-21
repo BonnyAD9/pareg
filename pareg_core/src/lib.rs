@@ -48,6 +48,22 @@ impl Pareg {
         next_inner(&self.args, &mut self.cur)
     }
 
+    /// Equivalent to calling next `cnt` times.
+    pub fn skip(&mut self, cnt: usize) -> Option<&str> {
+        if cnt == 0 {
+            self.cur()
+        } else {
+            self.cur = self.args.len().min(self.cur + cnt);
+            self.cur()
+        }
+    }
+
+    /// Skip all remaining arguments and return the last.
+    pub fn skip_all(&mut self) -> Option<&str> {
+        self.cur = self.args.len();
+        self.cur()
+    }
+
     /// Get the last returned argument.
     pub fn cur(&self) -> Option<&str> {
         cur_inner(&self.args, self.cur)
