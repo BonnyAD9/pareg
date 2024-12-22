@@ -1,0 +1,3 @@
+- Parse macro. (reverse of format).
+- More error types.
+- Custom parse methods for rust types with better errors.
