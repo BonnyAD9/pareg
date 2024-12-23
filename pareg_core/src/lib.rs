@@ -50,18 +50,24 @@ impl Pareg {
 
     /// Equivalent to calling next `cnt` times.
     pub fn skip(&mut self, cnt: usize) -> Option<&str> {
-        if cnt == 0 {
-            self.cur()
-        } else {
-            self.cur = self.args.len().min(self.cur + cnt);
-            self.cur()
-        }
+        self.jump(self.args.len().min(self.cur + cnt))
     }
 
     /// Skip all remaining arguments and return the last.
     pub fn skip_all(&mut self) -> Option<&str> {
-        self.cur = self.args.len();
+        self.jump(self.args.len())
+    }
+
+    /// Jump so that the argument at index `idx` is the next argument. Gets the
+    /// argument at `idx - 1`.
+    pub fn jump(&mut self, idx: usize) -> Option<&str> {
+        self.cur = idx;
         self.cur()
+    }
+
+    /// Jump to the zeroth argument.
+    pub fn reset(&mut self) {
+        self.jump(0);
     }
 
     /// Get the last returned argument.

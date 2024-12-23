@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Range};
 
 use thiserror::Error;
 
-use super::{ArgErrCtx, Result};
+use super::{ArgErrCtx, ColorMode, Result};
 
 /// Errors thrown when parsing arguments.
 #[derive(Debug, Error)]
@@ -22,6 +22,9 @@ pub enum ArgError {
     /// The value of argument was invalid.
     #[error("{0}")]
     InvalidValue(Box<ArgErrCtx>),
+    /// Argument is specified too many times.
+    #[error("{0}")]
+    TooManyArguments(Box<ArgErrCtx>),
     /// This error happens when you call any of the `cur_*` methods on
     /// [`crate::Pareg`]. It is not ment to happen in argument parsing and it
     /// may indicate that you have bug in your parsing.
@@ -73,6 +76,16 @@ impl ArgError {
         self.map_ctx(|c| c.main_msg(msg))
     }
 
+    /// Set the color mode.
+    pub fn color_mode(self, mode: ColorMode) -> Self {
+        self.map_ctx(|c| c.color_mode(mode))
+    }
+
+    /// Disable color.
+    pub fn no_color(self) -> Self {
+        self.map_ctx(|c| c.no_color())
+    }
+
     /// Sets new argument. If the original argument is substring of this,
     /// span will be adjusted.
     pub fn part_of(self, arg: String) -> Self {
@@ -105,6 +118,10 @@ impl ArgError {
             ArgError::InvalidValue(mut ctx) => {
                 *ctx = f(*ctx);
                 ArgError::InvalidValue(ctx)
+            }
+            ArgError::TooManyArguments(mut ctx) => {
+                *ctx = f(*ctx);
+                ArgError::TooManyArguments(ctx)
             }
             ArgError::NoLastArgument => ArgError::NoLastArgument,
         }

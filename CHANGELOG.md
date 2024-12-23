@@ -1,8 +1,11 @@
 # CHANGELOG
 
 ## Future
-+ Add `Pareg::skip` and `Pareg::skip_all`
-- Fix `Pareg::remaining` and `Pareg::cur_remaining`
++ Add `Pareg::skip` and `Pareg::skip_all`.
++ Add `Pareg::jump` and `Pareg::reset`.
++ Add `Error::TooManyArguments`.
++ Add `color_mode` and `no_color` to `ArgError` and `ArgErrCtx`.
+- Fix `Pareg::remaining` and `Pareg::cur_remaining`.
 
 ## v0.6.1
 - Fix panic in `Pareg::remaining`.

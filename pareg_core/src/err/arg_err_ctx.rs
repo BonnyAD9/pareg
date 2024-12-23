@@ -107,6 +107,17 @@ impl ArgErrCtx {
         self.long_message = Some(msg.into());
         self
     }
+
+    /// Set the color mode.
+    pub fn color_mode(mut self, mode: ColorMode) -> Self {
+        self.color = mode;
+        self
+    }
+
+    /// Disable color.
+    pub fn no_color(self) -> Self {
+        self.color_mode(ColorMode::Never)
+    }
 }
 
 impl Display for ArgErrCtx {
