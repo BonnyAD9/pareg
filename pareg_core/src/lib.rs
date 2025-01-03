@@ -2,16 +2,17 @@ mod arg_into;
 mod by_ref;
 mod err;
 mod from_arg;
+mod from_read;
 pub(crate) mod impl_all;
 mod parsers;
 pub mod proc;
+mod reader;
 mod starts;
-//mod from_str2;
-//mod reader;
 
-// TODO: pub from_str2, reader
-
-pub use crate::{arg_into::*, by_ref::*, err::*, from_arg::*, parsers::*};
+pub use crate::{
+    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, parsers::*,
+    reader::*,
+};
 
 use std::{env, ops::Range};
 

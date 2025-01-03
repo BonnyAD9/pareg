@@ -1,12 +1,29 @@
-use crate::Result;
+use std::{borrow::Cow, io::Read};
 
-pub struct Reader {
-    // TODO
+use crate::{ArgError, Result};
+
+struct StrSource<'a> {
+    data: Cow<'a, str>,
+    pos: usize,
 }
 
-impl Reader {
+enum ReaderSource<'a> {
+    Io(Box<dyn Read + 'a>),
+    Str(StrSource<'a>),
+    Iter(Box<dyn Iterator<Item = char> + 'a>),
+    IterErr(Box<dyn Iterator<Item = Result<char>> + 'a>),
+}
+
+/// Struct that allows formated reading.
+pub struct Reader<'a> {
+    source: ReaderSource<'a>,
+    pos: usize,
+}
+
+impl<'a> Reader<'a> {
+    /// Read at most `max` chars to the given string.
     pub fn read_to(&mut self, s: &mut String, max: usize) -> Result<()> {
-        s.reserve(self.size_hint().0.min(max));
+        s.reserve(self.bytes_size_hint().min(max));
         let target = s.len() + max;
         for c in self {
             s.push(c?);
@@ -17,20 +34,175 @@ impl Reader {
         Ok(())
     }
 
+    /// Read all the remaining chars to the given string.
     pub fn read_all(&mut self, s: &mut String) -> Result<()> {
-        s.reserve(self.size_hint().0);
+        s.reserve(self.bytes_size_hint());
         for c in self {
             s.push(c?);
         }
         Ok(())
     }
+
+    /// Get the position of the last returned char.
+    pub fn pos(&self) -> Option<usize> {
+        if self.pos == 0 {
+            None
+        } else {
+            Some(self.pos - 1)
+        }
+    }
+
+    pub fn bytes_size_hint(&self) -> usize {
+        match &self.source {
+            ReaderSource::Io(_) => 0,
+            ReaderSource::Str(s) => s.data.len() - s.pos,
+            ReaderSource::Iter(i) => i.size_hint().0,
+            ReaderSource::IterErr(i) => i.size_hint().0,
+        }
+    }
+
+    fn res<T>(&self, res: Result<T>) -> Result<T> {
+        res
+    }
+
+    fn new(source: ReaderSource<'a>) -> Self {
+        Self { source, pos: 0 }
+    }
 }
 
-impl Iterator for Reader {
+impl Iterator for Reader<'_> {
     type Item = Result<char>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // TODO
-        todo!()
+        let r = match &mut self.source {
+            ReaderSource::Io(io) => {
+                let res = read_char(io.as_mut());
+                self.res(res)
+            }
+            ReaderSource::Str(s) => Ok(s.next()),
+            ReaderSource::Iter(i) => Ok(i.next()),
+            ReaderSource::IterErr(i) => i.next().transpose(),
+        };
+        match r {
+            Ok(r) => {
+                self.pos += 1;
+                Ok(r).transpose()
+            }
+            Err(e) => Some(Err(e)),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match &self.source {
+            ReaderSource::Io(_) => (0, None),
+            ReaderSource::Str(s) => {
+                ((s.data.len() - s.pos) / 4, Some(s.data.len() - s.pos))
+            }
+            ReaderSource::Iter(i) => i.size_hint(),
+            ReaderSource::IterErr(i) => i.size_hint(),
+        }
+    }
+}
+
+fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
+    let mut bts = [0; 4];
+    if r.read(&mut bts[..1])? != 1 {
+        return Ok(None);
+    }
+    let (len, mut res) = utf8_len(bts[0])?;
+    if r.read(&mut bts[1..len])? != len - 1 {
+        return Err(ArgError::parse_msg(
+            "Utf8 expected more bytes.",
+            String::new(),
+        ));
+    }
+
+    if bts[0] == 0xC0
+        || bts[0] == 0xC1
+        || (bts[0] == 0xE0 && bts[1] < 0xA0)
+        || (bts[0] == 0xF4 && bts[1] < 0x90)
+    {
+        return Err(ArgError::parse_msg(
+            "Utf8 overlong encoding.",
+            String::new(),
+        ));
+    }
+
+    for b in &bts[1..len] {
+        if (b & 0xC0) != 0x80 {
+            return Err(ArgError::parse_msg(
+                "Invalid utf8 trailing byte.",
+                String::new(),
+            ));
+        }
+        res = (res << 6) | (b & 0x3F) as u32;
+    }
+
+    char::from_u32(res)
+        .ok_or_else(|| {
+            ArgError::parse_msg("Invalid utf8 code.", String::new())
+        })
+        .map(Some)
+}
+
+fn utf8_len(b: u8) -> Result<(usize, u32)> {
+    match b.leading_ones() {
+        0 => Ok((1, b as u32)),
+        2 => Ok((2, (b & 0x1F) as u32)),
+        3 => Ok((3, (b & 0x0F) as u32)),
+        4 => Ok((4, (b & 0x07) as u32)),
+        _ => Err(ArgError::parse_msg(
+            "Invalid leading utf8 byte.",
+            String::new(),
+        )),
+    }
+}
+
+impl<'a> From<Box<dyn Read + 'a>> for Reader<'a> {
+    fn from(value: Box<dyn Read + 'a>) -> Self {
+        Self::new(ReaderSource::Io(value))
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for Reader<'a> {
+    fn from(value: Cow<'a, str>) -> Self {
+        Self::new(ReaderSource::Str(StrSource {
+            data: value,
+            pos: 0,
+        }))
+    }
+}
+
+impl<'a> From<&'a str> for Reader<'a> {
+    fn from(value: &'a str) -> Self {
+        Cow::Borrowed(value).into()
+    }
+}
+
+impl From<String> for Reader<'_> {
+    fn from(value: String) -> Self {
+        Cow::<str>::Owned(value).into()
+    }
+}
+
+impl<'a> From<Box<dyn Iterator<Item = char> + 'a>> for Reader<'a> {
+    fn from(value: Box<dyn Iterator<Item = char> + 'a>) -> Self {
+        Self::new(ReaderSource::Iter(value))
+    }
+}
+
+impl<'a> From<Box<dyn Iterator<Item = Result<char>> + 'a>> for Reader<'a> {
+    fn from(value: Box<dyn Iterator<Item = Result<char>> + 'a>) -> Self {
+        Self::new(ReaderSource::IterErr(value))
+    }
+}
+
+impl Iterator for StrSource<'_> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let c = self.data[self.pos..].chars().next()?;
+        self.pos += c.len_utf8();
+        Some(c)
     }
 }

@@ -25,6 +25,8 @@ pub enum ArgError {
     /// Argument is specified too many times.
     #[error("{0}")]
     TooManyArguments(Box<ArgErrCtx>),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
     /// This error happens when you call any of the `cur_*` methods on
     /// [`crate::Pareg`]. It is not ment to happen in argument parsing and it
     /// may indicate that you have bug in your parsing.
@@ -127,7 +129,7 @@ impl ArgError {
                 *ctx = f(*ctx);
                 ArgError::TooManyArguments(ctx)
             }
-            ArgError::NoLastArgument => ArgError::NoLastArgument,
+            v => v,
         }
     }
 }
