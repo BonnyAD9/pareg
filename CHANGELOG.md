@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## Future
++ Add `Pareg::cur_idx` and `Pareg::next_idx`
++ Add `Pareg::peek` and `Pareg::get`
 + Add `Pareg::skip` and `Pareg::skip_all`.
 + Add `Pareg::jump` and `Pareg::reset`.
 + Add `Error::TooManyArguments`.

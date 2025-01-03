@@ -94,6 +94,34 @@ impl Pareg {
         &self.args[self.cur.saturating_sub(1)..]
     }
 
+    /// Get value that will be returned with the next call to `next`.
+    pub fn peek(&self) -> Option<&str> {
+        self.get(self.cur)
+    }
+
+    /// Get the index of the next argument.
+    pub fn next_idx(&self) -> Option<usize> {
+        if self.cur >= self.args.len() {
+            None
+        } else {
+            Some(self.cur)
+        }
+    }
+
+    /// Get index of the current argument.
+    pub fn cur_idx(&self) -> Option<usize> {
+        if self.cur == 0 {
+            None
+        } else {
+            Some(self.cur - 1)
+        }
+    }
+
+    /// Get argument at the given index.
+    pub fn get(&self, idx: usize) -> Option<&str> {
+        self.args.get(idx).map(|a| a.as_str())
+    }
+
     /// Perform manual parsing on the next argument. This is will make the
     /// errors have better messages than just doing the parsing without
     /// [`Pareg`].
