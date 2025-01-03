@@ -140,4 +140,13 @@ mod tests {
         assert!(has_any_key!("ahoj:lol", sep, "hello", s));
         assert!(!has_any_key!("greeting=ahoj", '=', "greet", s));
     }
+
+    #[test]
+    fn from_read_int() {
+        use pareg_core::FromRead;
+
+        assert_eq!(u32::from_read(&mut "546".into()).res, Some(546));
+        assert_eq!(i32::from_read(&mut "546".into()).res, Some(546));
+        assert_eq!(i32::from_read(&mut "-546".into()).res, Some(-546));
+    }
 }

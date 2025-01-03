@@ -96,6 +96,12 @@ impl ArgErrCtx {
         self
     }
 
+    /// Sets the start value of the span
+    pub fn span_start(mut self, start: usize) -> Self {
+        self.error_span.start = start.min(self.error_span.end);
+        self
+    }
+
     /// Sets the short message that is inlined with the code.
     pub fn inline_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
         self.message = msg.into();

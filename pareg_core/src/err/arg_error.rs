@@ -68,6 +68,11 @@ impl ArgError {
         self.map_ctx(|c| c.spanned(span))
     }
 
+    /// Set the span start.
+    pub fn span_start(self, start: usize) -> Self {
+        self.map_ctx(|c| c.span_start(start))
+    }
+
     /// Sets the short message that is inlined with the code.
     pub fn inline_msg(self, msg: impl Into<Cow<'static, str>>) -> Self {
         self.map_ctx(|c| c.inline_msg(msg))
