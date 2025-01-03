@@ -1,6 +1,6 @@
 [package]
 name = "pareg_proc"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 license-file = "../LICENSE"
 description = "This library contains proc macros for the pareg library."
@@ -14,4 +14,4 @@ readme = "../README.md"
 proc-macro = true
 
 [dependencies]
-pareg_core = { version = "0.6.1", path = "../pareg_core" }
+pareg_core = { version = "0.7.0", path = "../pareg_core" }
