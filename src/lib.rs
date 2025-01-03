@@ -171,4 +171,24 @@ mod tests {
 
         assert_eq!(ip, (156, 189, 254, 5));
     }
+
+    #[test]
+    fn parsef() {
+        use pareg_proc::parsef;
+
+        let mut ip: (u8, u8, u8, u8) = (0, 0, 0, 0);
+
+        if let Err(e) = parsef!(
+            &mut "156.189.254.5".into(),
+            "{}.{}.{}.{}",
+            &mut ip.0,
+            &mut ip.1,
+            &mut ip.2,
+            &mut ip.3
+        ) {
+            println!("{e}");
+        }
+
+        assert_eq!(ip, (156, 189, 254, 5));
+    }
 }

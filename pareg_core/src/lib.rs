@@ -4,15 +4,15 @@ mod err;
 mod from_arg;
 mod from_read;
 pub(crate) mod impl_all;
+mod parsef;
 mod parsers;
 pub mod proc;
 mod reader;
 mod starts;
-mod parsef;
 
 pub use crate::{
-    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, parsers::*,
-    reader::*, parsef::*,
+    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, parsef::*,
+    parsers::*, reader::*,
 };
 
 use std::{env, ops::Range};

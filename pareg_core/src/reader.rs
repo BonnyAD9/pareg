@@ -138,6 +138,9 @@ fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
         return Ok(None);
     }
     let (len, mut res) = utf8_len(bts[0])?;
+    if len == 1 {
+        return Ok(Some(res as u8 as char));
+    }
     if r.read(&mut bts[1..len])? != len - 1 {
         return Err(ArgError::parse_msg(
             "Utf8 expected more bytes.",

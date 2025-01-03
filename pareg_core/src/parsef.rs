@@ -14,7 +14,9 @@ impl<T: FromRead> ParseF for T {
             *self = v;
             Ok(res.err)
         } else {
-            Err(res.err.unwrap_or_else(|| r.err_parse("Failed to parse argument.").span_start(start)))
+            Err(res.err.unwrap_or_else(|| {
+                r.err_parse("Failed to parse argument.").span_start(start)
+            }))
         }
     }
 }
@@ -40,9 +42,8 @@ pub fn parsef_part<'a>(
     r: &mut Reader,
     mut args: impl AsMut<[ParseFArg<'a>]>,
 ) -> Result<Option<ArgError>> {
-    let mut args = args.as_mut().iter_mut().peekable();
     let mut last_err = None;
-    while let Some(a) = args.next() {
+    for a in args.as_mut() {
         last_err = match a {
             ParseFArg::Arg(a) => a.set_from_read(r)?,
             ParseFArg::Str(a) => {
@@ -56,18 +57,19 @@ pub fn parsef_part<'a>(
 }
 
 pub fn match_prefix(prefix: &str, r: &mut Reader) -> Result<()> {
+    // TODO better error on first fail
     for p in prefix.chars() {
         let Some(s) = r.next().transpose()? else {
-            return r.err_parse("Unexpected end of string.")
+            return r
+                .err_parse("Unexpected end of string.")
                 .inline_msg(format!("Expected `{p}`"))
-                .err()
+                .err();
         };
         if p != s {
-            return r.err_parse(
-                format!("Unexpected character `{s}`.")
-            )
-            .inline_msg(format!("Expected `{p}`."))
-            .err();
+            return r
+                .err_parse(format!("Unexpected character `{s}`."))
+                .inline_msg(format!("Expected `{p}`."))
+                .err();
         }
     }
     Ok(())

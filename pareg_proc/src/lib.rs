@@ -33,3 +33,13 @@ use proc_macro::TokenStream;
 pub fn derive_from_arg(item: TokenStream) -> TokenStream {
     pareg_core::proc::from_arg::derive_from_arg(item.into()).into()
 }
+
+#[proc_macro]
+pub fn parsef(args: TokenStream) -> TokenStream {
+    pareg_core::proc::parsef::proc_parsef(args.into(), false).into()
+}
+
+#[proc_macro]
+pub fn parsef_part(args: TokenStream) -> TokenStream {
+    pareg_core::proc::parsef::proc_parsef(args.into(), true).into()
+}

@@ -4,7 +4,7 @@ use syn::{punctuated::Punctuated, Data, DeriveInput, LitStr, Meta, Token};
 
 /// Implementation of the derive proc macro for [`crate::FromArg`]
 pub fn derive_from_arg(item: TokenStream) -> TokenStream {
-    let input: DeriveInput = syn::parse(item.into()).unwrap();
+    let input: DeriveInput = syn::parse2(item).unwrap();
 
     // Ensure that there are no generics
     if !input.generics.params.is_empty() {
