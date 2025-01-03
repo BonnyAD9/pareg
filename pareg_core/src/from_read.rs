@@ -44,7 +44,7 @@ macro_rules! impl_from_read {
                 macro_rules! loop_signed {
                     ($op:ident, $ignore:ident) => {
 
-                        while let Some(c) = r.next() {
+                        while let Some(c) = r.peek().transpose() {
                             let r2 = res.checked_mul(RADIX as Self);
                             let d = pass_or_exit!(c);
                             let d = unwrap_or_exit!(
@@ -64,6 +64,7 @@ macro_rules! impl_from_read {
                                         ))
                                 )
                             );
+                            _ = r.next();
                         }
                     };
                 }
@@ -79,7 +80,11 @@ macro_rules! impl_from_read {
 
                 $(loop_signed!(checked_add, $ut);)?
 
-                ParseResult { err: None, res: Some(res) }
+                ParseResult {
+                    err: None,
+                    res: (start_pos != r.pos().unwrap_or_default())
+                        .then_some(res)
+                }
             }
         })*
     };

@@ -8,10 +8,11 @@ mod parsers;
 pub mod proc;
 mod reader;
 mod starts;
+mod parsef;
 
 pub use crate::{
     arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, parsers::*,
-    reader::*,
+    reader::*, parsef::*,
 };
 
 use std::{env, ops::Range};

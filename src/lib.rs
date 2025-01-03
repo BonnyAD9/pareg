@@ -149,4 +149,26 @@ mod tests {
         assert_eq!(i32::from_read(&mut "546".into()).res, Some(546));
         assert_eq!(i32::from_read(&mut "-546".into()).res, Some(-546));
     }
+
+    #[test]
+    fn parsef_fun() {
+        use pareg_core::*;
+
+        let mut ip: (u8, u8, u8, u8) = (0, 0, 0, 0);
+        let args = [
+            ParseFArg::Arg(&mut ip.0),
+            ParseFArg::Str(".".into()),
+            ParseFArg::Arg(&mut ip.1),
+            ParseFArg::Str(".".into()),
+            ParseFArg::Arg(&mut ip.2),
+            ParseFArg::Str(".".into()),
+            ParseFArg::Arg(&mut ip.3),
+        ];
+
+        if let Err(e) = parsef(&mut "156.189.254.5".into(), args) {
+            println!("{e}");
+        }
+
+        assert_eq!(ip, (156, 189, 254, 5));
+    }
 }
