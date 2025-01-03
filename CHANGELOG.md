@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Future
+## v0.7.0
 + Add `Pareg::cur_idx` and `Pareg::next_idx`
 + Add `Pareg::peek` and `Pareg::get`
 + Add `Pareg::skip` and `Pareg::skip_all`.
