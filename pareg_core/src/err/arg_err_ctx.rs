@@ -118,6 +118,21 @@ impl ArgErrCtx {
     pub fn no_color(self) -> Self {
         self.color_mode(ColorMode::Never)
     }
+
+    /// Changes the current argument to be postfix of this whole argument.
+    pub fn postfix_of(mut self, arg: String) -> Self {
+        let al = self.args[self.error_idx].len();
+        match al.cmp(&arg.len()) {
+            std::cmp::Ordering::Less => self.shift_span(arg.len() - al, arg),
+            std::cmp::Ordering::Equal => self,
+            std::cmp::Ordering::Greater => {
+                let d = al - arg.len();
+                self.error_span.start += d;
+                self.error_span.end += d;
+                self
+            }
+        }
+    }
 }
 
 impl Display for ArgErrCtx {

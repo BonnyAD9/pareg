@@ -92,6 +92,10 @@ impl ArgError {
         self.map_ctx(|c| c.part_of(arg))
     }
 
+    pub fn postfix_of(self, arg: String) -> Self {
+        self.map_ctx(|c| c.postfix_of(arg))
+    }
+
     /// Helper method to wrap this in error and make it a result.
     pub fn err<T>(self) -> Result<T> {
         Err(self)

@@ -121,7 +121,7 @@ mod tests {
         let mut args =
             Pareg::new(args.iter().map(|a| a.to_string()).collect());
 
-        assert_eq!("hello", args.next_arg::<&str>()?);
+        assert_eq!("hello", args.next_arg::<String>()?);
         assert_eq!(10, args.next_arg::<usize>()?);
         assert_eq!(0.25, args.next_arg::<f64>()?);
         assert_eq!(ColorMode::Always, args.next_arg::<ColorMode>()?);
