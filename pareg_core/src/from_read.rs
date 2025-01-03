@@ -6,5 +6,5 @@ pub struct ParseResult<T> {
 }
 
 pub trait FromRead: Sized {
-    fn from_read(r: Reader) -> ParseResult<Self>;
+    fn from_read(r: &mut Reader) -> ParseResult<Self>;
 }
