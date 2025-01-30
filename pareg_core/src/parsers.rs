@@ -272,3 +272,30 @@ where
 {
     Ok(key_mval_arg::<&str, _>(arg, sep)?.1)
 }
+
+/// Tries to set the value of `res` to some if it is none. Throws error if it
+/// is some.
+pub fn try_set_arg_with<'a, T: FromArg<'a>>(
+    res: &mut Option<T>,
+    arg: &'a str,
+    f: impl FnOnce(&'a str) -> Result<T>,
+) -> Result<()> {
+    if res.is_some() {
+        Err(ArgError::TooManyArguments(Box::new(ArgErrCtx::from_msg(
+            "Argument sets value that can be set only once.",
+            arg.to_string(),
+        ))))
+    } else {
+        *res = Some(f(arg)?);
+        Ok(())
+    }
+}
+
+/// Tries to set the value of `res` to some if it is none. Throws error if it
+/// is some.
+pub fn try_set_arg<'a, T: FromArg<'a>>(
+    res: &mut Option<T>,
+    arg: &'a str,
+) -> Result<()> {
+    try_set_arg_with(res, arg, T::from_arg)
+}

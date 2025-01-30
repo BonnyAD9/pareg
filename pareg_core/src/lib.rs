@@ -740,6 +740,56 @@ impl Pareg {
         }
     }
 
+    /// Tries to set the value of `res` to some if it is none. Throws error if it
+    /// is some.
+    pub fn try_set_cur_with<'a, T: FromArg<'a>>(
+        &'a mut self,
+        res: &mut Option<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
+    ) -> Result<()> {
+        self.map_err(try_set_arg_with(res, self.cur_arg()?, f))
+    }
+
+    /// Tries to set the value of `res` to some if it is none. Throws error if it
+    /// is some.
+    pub fn try_set_next_with<'a, T: FromArg<'a>>(
+        &'a mut self,
+        res: &mut Option<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
+    ) -> Result<()> {
+        map_err_inner(
+            &self.args,
+            self.cur,
+            try_set_arg_with(
+                res,
+                next_arg_inner(&self.args, &mut self.cur)?,
+                f,
+            ),
+        )
+    }
+
+    /// Tries to set the value of `res` to some if it is none. Throws error if it
+    /// is some.
+    pub fn try_set_cur<'a, T: FromArg<'a>>(
+        &'a mut self,
+        res: &mut Option<T>,
+    ) -> Result<()> {
+        self.map_err(try_set_arg(res, self.cur_arg()?))
+    }
+
+    /// Tries to set the value of `res` to some if it is none. Throws error if it
+    /// is some.
+    pub fn try_set_next<'a, T: FromArg<'a>>(
+        &'a mut self,
+        res: &mut Option<T>,
+    ) -> Result<()> {
+        map_err_inner(
+            &self.args,
+            self.cur,
+            try_set_arg(res, next_arg_inner(&self.args, &mut self.cur)?),
+        )
+    }
+
     /// Creates pretty error that the last argument (cur) is unknown.
     pub fn err_unknown_argument(&self) -> ArgError {
         let arg = self.cur().unwrap_or("");

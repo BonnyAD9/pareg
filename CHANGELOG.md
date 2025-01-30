@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## future
+### New features
+- Add parsers `try_set_arg_with` and `try_set_arg`.
+- Add pareg methods `try_set_cur_with`, `try_set_next_with`, `try_set_cur` and
+  `try_set_next`.
+- Add parsef functionality (function and macro).
+
 ## v0.7.0
 + Add `Pareg::cur_idx` and `Pareg::next_idx`
 + Add `Pareg::peek` and `Pareg::get`
