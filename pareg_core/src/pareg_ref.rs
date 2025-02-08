@@ -20,7 +20,7 @@ use crate::{
 /// calling mutable functions while there are immutable references to the
 /// original arguments.
 #[derive(Debug)]
-pub struct ParegRef<'a, S: AsRef<str>> {
+pub struct ParegRef<'a, S: AsRef<str> = String> {
     args: &'a [S],
     cur: Cow<'a, Cell<usize>>,
 }
