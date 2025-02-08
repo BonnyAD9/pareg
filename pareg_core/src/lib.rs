@@ -19,6 +19,14 @@ pub use crate::{
 use std::{borrow::Cow, cell::Cell, env, ops::Range};
 
 /// Helper for parsing arguments.
+///
+/// The preffered way to use this is to call [`Pareg::ref_mut`] to get
+/// [`ParegRef`] structure, which can be than used to parse the data:
+///
+/// This may be used to own the argument data. You can than get [`ParegRef`]
+/// structure by calling [`Pareg::ref_mut`] to pass around and do the parsing,
+/// because it can be less strict about lifetimes since it refers to the
+/// original pareg structure and so it is more powerful.
 pub struct Pareg {
     args: Vec<String>,
     cur: Cell<usize>,
@@ -50,15 +58,20 @@ impl Pareg {
         }
     }
 
-    /// Gets mutable reference to self.
-    #[inline]
-    pub fn ref_mut(&mut self) -> ParegRef<'_> {
-        self.inner()
-    }
-
+    /// DO NOT MAKE THIS PIBLIC. This can be public only if the lifetime
+    /// captured inside [`ParegRef`] borrows the original [`Pareg`] mutably.
     #[inline(always)]
     pub(crate) fn inner(&self) -> ParegRef<'_> {
         ParegRef::new(&self.args, Cow::Borrowed(&self.cur))
+    }
+
+    /// Gets mutable reference to self.
+    #[inline]
+    pub fn ref_mut(&mut self) -> ParegRef<'_> {
+        // It is OK to pass the inner reference out, because this will borrow
+        // [`Pareg`] mutably and so the captured reference in [`ParegRef`]
+        // also borrows [`Pareg`] mutably.
+        self.inner()
     }
 
     /// Get the next argument

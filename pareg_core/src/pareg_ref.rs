@@ -6,6 +6,8 @@ use crate::{
     ColorMode, FromArg, Result,
 };
 
+/// Helper for parsing arguments.
+///
 /// Mutable reference to pareg structure. In contrast to [`crate::Pareg`], it
 /// allows calling mutable functions while there are immutable references to
 /// the original arguments.
