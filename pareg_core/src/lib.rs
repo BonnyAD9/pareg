@@ -61,14 +61,14 @@ impl Pareg {
     /// DO NOT MAKE THIS PIBLIC. This can be public only if the lifetime
     /// captured inside [`ParegRef`] borrows the original [`Pareg`] mutably.
     #[inline(always)]
-    pub(crate) fn inner(&self) -> ParegRef<'_> {
+    pub(crate) fn inner(&self) -> ParegRef<'_, String> {
         ParegRef::new(&self.args, Cow::Borrowed(&self.cur))
     }
 
     /// Gets mutable reference to self. Mutating the resulting pareg ref will
     /// also mutate this pareg.
     #[inline]
-    pub fn get_mut_ref(&mut self) -> ParegRef<'_> {
+    pub fn get_mut_ref(&mut self) -> ParegRef<'_, String> {
         // It is OK to pass the inner reference out, because this will borrow
         // [`Pareg`] mutably and so the captured reference in [`ParegRef`]
         // also borrows [`Pareg`] mutably.
@@ -77,7 +77,7 @@ impl Pareg {
 
     /// Gets immutable reference to self. Mutating the resulting pareg ref will
     /// not mutate this pareg.
-    pub fn get_ref(&self) -> ParegRef<'_> {
+    pub fn get_ref(&self) -> ParegRef<'_, String> {
         ParegRef::new(&self.args, Cow::Owned(self.cur.clone()))
     }
 

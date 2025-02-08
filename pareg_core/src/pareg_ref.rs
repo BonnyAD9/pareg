@@ -20,19 +20,16 @@ use crate::{
 /// calling mutable functions while there are immutable references to the
 /// original arguments.
 #[derive(Debug)]
-pub struct ParegRef<'a> {
-    args: &'a [String],
+pub struct ParegRef<'a, S: AsRef<str>> {
+    args: &'a [S],
     cur: Cow<'a, Cell<usize>>,
 }
 
-impl<'a> ParegRef<'a> {
+impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// Creates referenced pareg from arguments and current index.
     #[inline]
-    pub fn new(
-        args: &'a [String],
-        cur: impl Into<Cow<'a, Cell<usize>>>,
-    ) -> ParegRef<'a> {
-        ParegRef {
+    pub fn new(args: &'a [S], cur: impl Into<Cow<'a, Cell<usize>>>) -> Self {
+        Self {
             args,
             cur: cur.into(),
         }
@@ -56,13 +53,13 @@ impl<'a> ParegRef<'a> {
     #[inline]
     pub fn cur(&self) -> Option<&'a str> {
         let idx = self.cur.get();
-        (idx != 0).then(|| self.args[idx - 1].as_str())
+        (idx != 0).then(|| self.args[idx - 1].as_ref())
     }
 
     /// Get argument at the given index.
     #[inline]
     pub fn get(&self, idx: usize) -> Option<&'a str> {
-        (idx < self.args.len()).then(|| self.args[idx].as_str())
+        (idx < self.args.len()).then(|| self.args[idx].as_ref())
     }
 
     /// Get value that will be returned with the next call to `next`.
@@ -73,19 +70,19 @@ impl<'a> ParegRef<'a> {
 
     /// Gets the remaining arguments (not including the current).
     #[inline]
-    pub fn remaining(&self) -> &'a [String] {
+    pub fn remaining(&self) -> &'a [S] {
         &self.args[self.cur.get()..]
     }
 
     /// Gets the remaining arguments (including the current).
     #[inline]
-    pub fn cur_remaining(&self) -> &'a [String] {
+    pub fn cur_remaining(&self) -> &'a [S] {
         &self.args[self.cur.get().saturating_sub(1)..]
     }
 
     /// Gets all the arguments (including the first one).
     #[inline]
-    pub fn all_args(&self) -> &'a [String] {
+    pub fn all_args(&self) -> &'a [S] {
         self.args
     }
 
@@ -427,7 +424,7 @@ impl<'a> ParegRef<'a> {
         let long_message =
             self.cur().map(|a| format!("Unknown argument `{a}`").into());
         let ctx = ArgErrCtx {
-            args: self.args.into(),
+            args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.cur.get().saturating_sub(1),
             error_span: 0..arg.len(),
             message: "Unknown argument.".into(),
@@ -472,12 +469,16 @@ impl<'a> ParegRef<'a> {
     /// Creates pretty error that there should be more arguments but there are
     /// no more arguments.
     pub fn err_no_more_arguments(&self) -> ArgError {
-        let pos = self.args.last().map_or(0, |a| a.len());
+        let pos = self.args.last().map_or(0, |a| a.as_ref().len());
         let long_message = self.args.last().map(|a| {
-            format!("Expected more arguments after the argument `{a}`.").into()
+            format!(
+                "Expected more arguments after the argument `{}`.",
+                a.as_ref()
+            )
+            .into()
         });
         let ctx = ArgErrCtx {
-            args: self.args.into(),
+            args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.args.len().saturating_sub(1),
             error_span: pos..pos,
             message: "Expected more arguments.".into(),
@@ -493,7 +494,10 @@ impl<'a> ParegRef<'a> {
     /// [`ParegRef::next_manual`] instead.
     #[inline(always)]
     pub fn map_err(&self, err: ArgError) -> ArgError {
-        err.add_args(self.args.into(), self.cur.get().saturating_sub(1))
+        err.add_args(
+            self.args.iter().map(|a| a.as_ref().to_string()).collect(),
+            self.cur.get().saturating_sub(1),
+        )
     }
 
     /// Adds additional information to error in result so that it has better
@@ -505,14 +509,14 @@ impl<'a> ParegRef<'a> {
     }
 }
 
-impl<'a> Iterator for ParegRef<'a> {
+impl<'a, T: AsRef<str>> Iterator for ParegRef<'a, T> {
     type Item = &'a str;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cur = self.cur.get();
         (cur < self.args.len()).then(|| {
             self.cur.set(cur + 1);
-            self.args[cur].as_str()
+            self.args[cur].as_ref()
         })
     }
 
@@ -526,7 +530,7 @@ impl<'a> Iterator for ParegRef<'a> {
     }
 
     fn last(self) -> Option<Self::Item> {
-        self.remaining().last().map(|s| s.as_str())
+        self.remaining().last().map(|s| s.as_ref())
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -534,12 +538,12 @@ impl<'a> Iterator for ParegRef<'a> {
         let new = cur + n;
         (new < self.args.len()).then(|| {
             self.cur.set(new);
-            self.args[new].as_str()
+            self.args[new].as_ref()
         })
     }
 }
 
-impl Clone for ParegRef<'_> {
+impl<T: AsRef<str>> Clone for ParegRef<'_, T> {
     /// Note that the clones will not affect the original pareg even if the
     /// original [`ParegRef`] did.
     fn clone(&self) -> Self {
