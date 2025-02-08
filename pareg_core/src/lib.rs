@@ -65,13 +65,20 @@ impl Pareg {
         ParegRef::new(&self.args, Cow::Borrowed(&self.cur))
     }
 
-    /// Gets mutable reference to self.
+    /// Gets mutable reference to self. Mutating the resulting pareg ref will
+    /// also mutate this pareg.
     #[inline]
     pub fn ref_mut(&mut self) -> ParegRef<'_> {
         // It is OK to pass the inner reference out, because this will borrow
         // [`Pareg`] mutably and so the captured reference in [`ParegRef`]
         // also borrows [`Pareg`] mutably.
         self.inner()
+    }
+
+    /// Gets immutable reference to self. Mutating the resulting pareg ref will
+    /// not mutate this pareg.
+    pub fn ref_imm(&self) -> ParegRef<'_> {
+        ParegRef::new(&self.args, Cow::Owned(self.cur.clone()))
     }
 
     /// Get the next argument

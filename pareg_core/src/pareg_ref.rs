@@ -8,9 +8,13 @@ use crate::{
 
 /// Helper for parsing arguments.
 ///
-/// Mutable reference to pareg structure. In contrast to [`crate::Pareg`], it
-/// allows calling mutable functions while there are immutable references to
-/// the original arguments.
+/// Mutable reference to pareg structure. Mutating this can mutate original
+/// [`crate::Pareg`] structure. In contrast to [`crate::Pareg`], it allows
+/// calling mutable functions while there are immutable references to the
+/// original arguments.
+///
+/// Note that the clones will not affect the original pareg even if the
+/// original [`ParegRef`] did.
 #[derive(Debug)]
 pub struct ParegRef<'a> {
     args: &'a [String],
@@ -514,5 +518,13 @@ impl<'a> Iterator for ParegRef<'a> {
             self.cur.set(new);
             self.args[new].as_str()
         })
+    }
+}
+
+impl Clone for ParegRef<'_> {
+    /// Note that the clones will not affect the original pareg even if the
+    /// original [`ParegRef`] did.
+    fn clone(&self) -> Self {
+        Self::new(self.args, self.cur.to_owned())
     }
 }
