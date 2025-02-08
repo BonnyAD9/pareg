@@ -49,7 +49,7 @@ impl<'a> ParegRef<'a> {
     /// Detach from the original pareg structure. Mutating this will no longer
     /// mutate the original [`crate::Pareg`] structure (if it did before).
     pub fn detach(&mut self) {
-        self.cur = self.cur.to_owned();
+        self.cur = Cow::Owned(self.cur.as_ref().clone());
     }
 
     /// Get the last returned argument.
@@ -543,6 +543,6 @@ impl Clone for ParegRef<'_> {
     /// Note that the clones will not affect the original pareg even if the
     /// original [`ParegRef`] did.
     fn clone(&self) -> Self {
-        Self::new(self.args, self.cur.to_owned())
+        Self::new(self.args, Cow::Owned(self.cur.as_ref().clone()))
     }
 }
