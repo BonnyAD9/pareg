@@ -6,6 +6,11 @@
 - Add pareg methods `try_set_cur_with`, `try_set_next_with`, `try_set_cur` and
   `try_set_next`.
 - Add parsef functionality (function and macro).
+- Add `ParegRef`. It allows parsing to continue even if there are references to
+  the original arguments.
+
+### Changes
+- Rename `Pareg::map_err` to `Pareg::map_res`, add `Pareg::map_err`.
 
 ## v0.7.0
 + Add `Pareg::cur_idx` and `Pareg::next_idx`

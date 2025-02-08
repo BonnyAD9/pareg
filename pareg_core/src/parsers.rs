@@ -275,7 +275,7 @@ where
 
 /// Tries to set the value of `res` to some if it is none. Throws error if it
 /// is some.
-pub fn try_set_arg_with<'a, T: FromArg<'a>>(
+pub fn try_set_arg_with<'a, T>(
     res: &mut Option<T>,
     arg: &'a str,
     f: impl FnOnce(&'a str) -> Result<T>,

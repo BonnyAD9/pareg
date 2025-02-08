@@ -4,6 +4,7 @@ mod err;
 mod from_arg;
 mod from_read;
 pub(crate) mod impl_all;
+mod pareg_ref;
 mod parsef;
 mod parsers;
 pub mod proc;
@@ -11,23 +12,23 @@ mod reader;
 mod starts;
 
 pub use crate::{
-    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, parsef::*,
-    parsers::*, reader::*,
+    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, pareg_ref::*,
+    parsef::*, parsers::*, reader::*,
 };
 
-use std::{env, ops::Range};
+use std::{borrow::Cow, cell::Cell, env, ops::Range};
 
 /// Helper for parsing arguments.
 pub struct Pareg {
     args: Vec<String>,
-    cur: usize,
+    cur: Cell<usize>,
 }
 
 impl From<Vec<String>> for Pareg {
     fn from(value: Vec<String>) -> Self {
         Self {
             args: value,
-            cur: 0,
+            cur: 0.into(),
         }
     }
 }
@@ -35,93 +36,110 @@ impl From<Vec<String>> for Pareg {
 impl Pareg {
     /// Create [`Pareg`] from vector of arguments. The first argument is NOT
     /// skipped.
+    #[inline]
     pub fn new(args: Vec<String>) -> Self {
         args.into()
     }
 
     /// Create [`Pareg`] from [`env::args`], the first argument is skipped.
+    #[inline]
     pub fn args() -> Self {
         Self {
             args: env::args().collect(),
-            cur: 1,
+            cur: 1.into(),
         }
+    }
+
+    /// Gets mutable reference to self.
+    #[inline]
+    pub fn ref_mut(&mut self) -> ParegRef<'_> {
+        self.inner()
+    }
+
+    #[inline(always)]
+    pub(crate) fn inner(&self) -> ParegRef<'_> {
+        ParegRef::new(&self.args, Cow::Borrowed(&self.cur))
     }
 
     /// Get the next argument
     // Iterator impl is not possible because the returned values are borrowed.
     #[allow(clippy::should_implement_trait)]
+    #[inline]
     pub fn next(&mut self) -> Option<&str> {
-        next_inner(&self.args, &mut self.cur)
+        self.inner().next()
     }
 
     /// Equivalent to calling next `cnt` times.
-    pub fn skip(&mut self, cnt: usize) -> Option<&str> {
-        self.jump(self.args.len().min(self.cur + cnt))
+    #[inline]
+    pub fn skip_args(&mut self, cnt: usize) -> Option<&str> {
+        self.inner().skip_args(cnt)
     }
 
     /// Skip all remaining arguments and return the last.
+    #[inline]
     pub fn skip_all(&mut self) -> Option<&str> {
-        self.jump(self.args.len())
+        self.inner().skip_all()
     }
 
     /// Jump so that the argument at index `idx` is the next argument. Gets the
     /// argument at `idx - 1`.
+    #[inline]
     pub fn jump(&mut self, idx: usize) -> Option<&str> {
-        self.cur = idx;
-        self.cur()
+        self.inner().jump(idx)
     }
 
     /// Jump to the zeroth argument.
+    #[inline]
     pub fn reset(&mut self) {
-        self.jump(0);
+        self.inner().reset()
     }
 
     /// Get the last returned argument.
+    #[inline]
     pub fn cur(&self) -> Option<&str> {
-        cur_inner(&self.args, self.cur)
+        self.inner().cur()
     }
 
     /// Gets all the arguments (including the first one).
+    #[inline]
     pub fn all_args(&self) -> &[String] {
-        &self.args
+        self.inner().all_args()
     }
 
     /// Gets the remaining arguments (not including the current).
+    #[inline]
     pub fn remaining(&self) -> &[String] {
-        &self.args[self.cur..]
+        self.inner().remaining()
     }
 
     /// Gets the remaining arguments (including the current).
+    #[inline]
     pub fn cur_remaining(&self) -> &[String] {
-        &self.args[self.cur.saturating_sub(1)..]
+        self.inner().cur_remaining()
     }
 
     /// Get value that will be returned with the next call to `next`.
+    #[inline]
     pub fn peek(&self) -> Option<&str> {
-        self.get(self.cur)
+        self.inner().peek()
     }
 
     /// Get the index of the next argument.
+    #[inline]
     pub fn next_idx(&self) -> Option<usize> {
-        if self.cur >= self.args.len() {
-            None
-        } else {
-            Some(self.cur)
-        }
+        self.inner().next_idx()
     }
 
     /// Get index of the current argument.
+    #[inline]
     pub fn cur_idx(&self) -> Option<usize> {
-        if self.cur == 0 {
-            None
-        } else {
-            Some(self.cur - 1)
-        }
+        self.inner().cur_idx()
     }
 
     /// Get argument at the given index.
+    #[inline]
     pub fn get(&self, idx: usize) -> Option<&str> {
-        self.args.get(idx).map(|a| a.as_str())
+        self.inner().get(idx)
     }
 
     /// Perform manual parsing on the next argument. This is will make the
@@ -143,13 +161,12 @@ impl Pareg {
     /// }).unwrap();
     /// assert_eq!((10, 0.25), res);
     /// ```
-    pub fn next_manual<'a, T, F>(&'a mut self, f: F) -> Result<T>
-    where
-        T: 'a,
-        F: Fn(&'a str) -> Result<T>,
-    {
-        self.next();
-        self.map_err(f(self.cur_arg()?))
+    #[inline]
+    pub fn next_manual<'a, T: 'a>(
+        &'a mut self,
+        f: impl Fn(&'a str) -> Result<T>,
+    ) -> Result<T> {
+        self.inner().next_manual(f)
     }
 
     /// Perform manual parsing on the next argument. This is will make the
@@ -167,17 +184,17 @@ impl Pareg {
     ///
     /// args.next();
     ///
-    /// let res: (usize, f32) = args.next_manual(|s| {
+    /// let res: (usize, f32) = args.cur_manual(|s| {
     ///     key_val_arg(s.strip_prefix("-D").unwrap(), '=')
     /// }).unwrap();
     /// assert_eq!((10, 0.25), res);
     /// ```
-    pub fn cur_manual<'a, T, F>(&'a self, f: F) -> Result<T>
-    where
-        T: 'a,
-        F: Fn(&'a str) -> Result<T>,
-    {
-        self.map_err(f(self.cur_arg()?))
+    #[inline]
+    pub fn cur_manual<'a, T: 'a>(
+        &'a self,
+        f: impl Fn(&'a str) -> Result<T>,
+    ) -> Result<T> {
+        self.inner().cur_manual(f)
     }
 
     /// Parses the next value in the iterator.
@@ -194,11 +211,8 @@ impl Pareg {
     /// assert_eq!(0.25, args.next_arg::<f64>().unwrap());
     /// ```
     #[inline]
-    pub fn next_arg<'a, T>(&'a mut self) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        next_arg_inner(&self.args, &mut self.cur)
+    pub fn next_arg<'a, T: FromArg<'a>>(&'a mut self) -> Result<T> {
+        self.inner().next_arg()
     }
 
     /// Uses the function [`key_mval_arg`] on the next argument.
@@ -228,17 +242,12 @@ impl Pareg {
     ///     args.next_key_mval::<String, &str>('=').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn next_key_mval<'a, K, V>(
+    #[inline]
+    pub fn next_key_mval<'a, K: FromArg<'a>, V: FromArg<'a>>(
         &'a mut self,
         sep: char,
-    ) -> Result<(K, Option<V>)>
-    where
-        K: FromArg<'a>,
-        V: FromArg<'a>,
-    {
-        self.next();
-        self.map_err(key_mval_arg(self.cur_arg()?, sep))
+    ) -> Result<(K, Option<V>)> {
+        self.inner().next_key_mval(sep)
     }
 
     /// Uses the function [`key_val_arg`] on the next value.
@@ -264,14 +273,12 @@ impl Pareg {
     ///     args.next_key_val::<i32, f64>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn next_key_val<'a, K, V>(&'a mut self, sep: char) -> Result<(K, V)>
-    where
-        K: FromArg<'a>,
-        V: FromArg<'a>,
-    {
-        self.next();
-        self.map_err(key_val_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn next_key_val<'a, K: FromArg<'a>, V: FromArg<'a>>(
+        &'a mut self,
+        sep: char,
+    ) -> Result<(K, V)> {
+        self.inner().next_key_val(sep)
     }
 
     /// Uses the function [`bool_arg`] on the next value.
@@ -291,10 +298,9 @@ impl Pareg {
     /// assert_eq!(true, args.next_bool("yes", "no").unwrap());
     /// assert_eq!(false, args.next_bool("always", "never").unwrap());
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn next_bool(&mut self, t: &str, f: &str) -> Result<bool> {
-        self.next();
-        self.map_err(bool_arg(t, f, self.cur_arg()?))
+        self.inner().next_bool(t, f)
     }
 
     /// Uses the function [`opt_bool_arg`] on the next argument.
@@ -323,15 +329,14 @@ impl Pareg {
     ///     args.next_opt_bool("always", "never", "auto").unwrap()
     /// );
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn next_opt_bool(
         &mut self,
         t: &str,
         f: &str,
         n: &str,
     ) -> Result<Option<bool>> {
-        self.next();
-        self.map_err(opt_bool_arg(t, f, n, self.cur_arg()?))
+        self.inner().next_opt_bool(t, f, n)
     }
 
     /// Uses the function [`key_arg`] on the next value.
@@ -356,13 +361,9 @@ impl Pareg {
     ///     args.next_key::<i32>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn next_key<'a, T>(&'a mut self, sep: char) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        self.next();
-        self.map_err(key_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn next_key<'a, T: FromArg<'a>>(&'a mut self, sep: char) -> Result<T> {
+        self.inner().next_key(sep)
     }
 
     /// Uses the function [`val_arg`] on the next value.
@@ -388,13 +389,9 @@ impl Pareg {
     ///     args.next_val::<f64>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn next_val<'a, T>(&'a mut self, sep: char) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        self.next();
-        self.map_err(val_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn next_val<'a, T: FromArg<'a>>(&'a mut self, sep: char) -> Result<T> {
+        self.inner().next_val(sep)
     }
 
     /// Uses the function [`mval_arg`] on the next argument.
@@ -424,13 +421,12 @@ impl Pareg {
     ///     args.next_mval::<&str>('=').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn next_mval<'a, T>(&'a mut self, sep: char) -> Result<Option<T>>
-    where
-        T: FromArg<'a>,
-    {
-        self.next();
-        self.map_err(mval_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn next_mval<'a, T: FromArg<'a>>(
+        &'a mut self,
+        sep: char,
+    ) -> Result<Option<T>> {
+        self.inner().next_mval(sep)
     }
 
     /// Parses the last returned value from the iterator.
@@ -449,12 +445,9 @@ impl Pareg {
     /// args.next();
     /// assert_eq!(0.25, args.cur_arg::<f64>().unwrap());
     /// ```
-    #[inline(always)]
-    pub fn cur_arg<'a, T>(&'a self) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        cur_arg_inner(&self.args, self.cur)
+    #[inline]
+    pub fn cur_arg<'a, T: FromArg<'a>>(&'a self) -> Result<T> {
+        self.inner().cur_arg()
     }
 
     /// Uses the function [`key_mval_arg`] on the last argument. If there is no
@@ -488,16 +481,12 @@ impl Pareg {
     ///     args.cur_key_mval::<String, &str>('=').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn cur_key_mval<'a, K, V>(
+    #[inline]
+    pub fn cur_key_mval<'a, K: FromArg<'a>, V: FromArg<'a>>(
         &'a self,
         sep: char,
-    ) -> Result<(K, Option<V>)>
-    where
-        K: FromArg<'a>,
-        V: FromArg<'a>,
-    {
-        self.map_err(key_mval_arg(self.cur_arg()?, sep))
+    ) -> Result<(K, Option<V>)> {
+        self.inner().cur_key_mval(sep)
     }
 
     /// Uses the function [`key_val_arg`] on the next value. If there is no
@@ -526,13 +515,12 @@ impl Pareg {
     ///     args.cur_key_val::<i32, f64>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn cur_key_val<'a, K, V>(&'a self, sep: char) -> Result<(K, V)>
-    where
-        K: FromArg<'a>,
-        V: FromArg<'a>,
-    {
-        self.map_err(key_val_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn cur_key_val<'a, K: FromArg<'a>, V: FromArg<'a>>(
+        &'a self,
+        sep: char,
+    ) -> Result<(K, V)> {
+        self.inner().cur_key_val(sep)
     }
 
     /// Uses the function [`bool_arg`] on the next value. If there is no last
@@ -556,9 +544,9 @@ impl Pareg {
     /// args.next();
     /// assert_eq!(false, args.cur_bool("always", "never").unwrap());
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn cur_bool(&self, t: &str, f: &str) -> Result<bool> {
-        self.map_err(bool_arg(t, f, self.cur_arg()?))
+        self.inner().cur_bool(t, f)
     }
 
     /// Uses the function [`opt_bool_arg`] on the next argument. If there is no
@@ -591,14 +579,14 @@ impl Pareg {
     ///     args.cur_opt_bool("always", "never", "auto").unwrap()
     /// );
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn cur_opt_bool(
         &self,
         t: &str,
         f: &str,
         n: &str,
     ) -> Result<Option<bool>> {
-        self.map_err(opt_bool_arg(t, f, n, self.cur_arg()?))
+        self.inner().cur_opt_bool(t, f, n)
     }
 
     /// Uses the function [`key_arg`] on the next argument. If there is no
@@ -626,12 +614,9 @@ impl Pareg {
     ///     args.cur_key::<i32>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn cur_key<'a, T>(&'a self, sep: char) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        self.map_err(key_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn cur_key<'a, T: FromArg<'a>>(&'a self, sep: char) -> Result<T> {
+        self.inner().cur_key(sep)
     }
 
     /// Uses the function [`val_arg`] on the next argument. If there is no
@@ -660,12 +645,9 @@ impl Pareg {
     ///     args.cur_val::<f64>(':').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn cur_val<'a, T>(&'a self, sep: char) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        self.map_err(val_arg(self.cur_arg()?, sep))
+    #[inline]
+    pub fn cur_val<'a, T: FromArg<'a>>(&'a self, sep: char) -> Result<T> {
+        self.inner().cur_val(sep)
     }
 
     /// Uses the function [`mval_arg`] on the next argument. If there is no
@@ -699,12 +681,12 @@ impl Pareg {
     ///     args.cur_mval::<&str>('=').unwrap()
     /// );
     /// ```
-    #[inline(always)]
-    pub fn cur_mval<'a, T>(&'a self, sep: char) -> Result<Option<T>>
-    where
-        T: FromArg<'a>,
-    {
-        cur_mval_inner(&self.args, self.cur, sep)
+    #[inline]
+    pub fn cur_mval<'a, T: FromArg<'a>>(
+        &'a self,
+        sep: char,
+    ) -> Result<Option<T>> {
+        self.inner().cur_mval(sep)
     }
 
     /// Split the current argument by the given separator and return the parsed
@@ -729,122 +711,95 @@ impl Pareg {
     ///     args.cur_val_or_next::<u32>('=').unwrap()
     /// );
     /// ```
-    pub fn cur_val_or_next<'a, T>(&'a mut self, sep: char) -> Result<T>
-    where
-        T: FromArg<'a>,
-    {
-        if let Some(res) = cur_mval_inner(&self.args, self.cur, sep)? {
-            Ok(res)
-        } else {
-            next_arg_inner(&self.args, &mut self.cur)
-        }
+    #[inline]
+    pub fn cur_val_or_next<'a, T: FromArg<'a>>(
+        &'a mut self,
+        sep: char,
+    ) -> Result<T> {
+        self.inner().cur_val_or_next(sep)
     }
 
     /// Tries to set the value of `res` to some if it is none. Throws error if it
     /// is some.
-    pub fn try_set_cur_with<'a, T: FromArg<'a>>(
+    #[inline]
+    pub fn try_set_cur_with<'a, T>(
+        &'a self,
+        res: &mut Option<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
+    ) -> Result<()> {
+        self.inner().try_set_cur_with(res, f)
+    }
+
+    /// Tries to set the value of `res` to some if it is none. Throws error if it
+    /// is some.
+    #[inline]
+    pub fn try_set_next_with<'a, T>(
         &'a mut self,
         res: &mut Option<T>,
         f: impl FnOnce(&'a str) -> Result<T>,
     ) -> Result<()> {
-        self.map_err(try_set_arg_with(res, self.cur_arg()?, f))
+        self.inner().try_set_next_with(res, f)
     }
 
     /// Tries to set the value of `res` to some if it is none. Throws error if it
     /// is some.
-    pub fn try_set_next_with<'a, T: FromArg<'a>>(
-        &'a mut self,
-        res: &mut Option<T>,
-        f: impl FnOnce(&'a str) -> Result<T>,
-    ) -> Result<()> {
-        map_err_inner(
-            &self.args,
-            self.cur,
-            try_set_arg_with(
-                res,
-                next_arg_inner(&self.args, &mut self.cur)?,
-                f,
-            ),
-        )
-    }
-
-    /// Tries to set the value of `res` to some if it is none. Throws error if it
-    /// is some.
+    #[inline]
     pub fn try_set_cur<'a, T: FromArg<'a>>(
         &'a mut self,
         res: &mut Option<T>,
     ) -> Result<()> {
-        self.map_err(try_set_arg(res, self.cur_arg()?))
+        self.inner().try_set_cur(res)
     }
 
     /// Tries to set the value of `res` to some if it is none. Throws error if it
     /// is some.
+    #[inline]
     pub fn try_set_next<'a, T: FromArg<'a>>(
         &'a mut self,
         res: &mut Option<T>,
     ) -> Result<()> {
-        map_err_inner(
-            &self.args,
-            self.cur,
-            try_set_arg(res, next_arg_inner(&self.args, &mut self.cur)?),
-        )
+        self.inner().try_set_next(res)
     }
 
     /// Creates pretty error that the last argument (cur) is unknown.
+    #[inline]
     pub fn err_unknown_argument(&self) -> ArgError {
-        let arg = self.cur().unwrap_or("");
-        let long_message = self
-            .cur()
-            .map(|a| format!("Unknown argument `{a}`.").into());
-        let context = ArgErrCtx {
-            args: self.args.clone(),
-            error_idx: self.cur.saturating_sub(1),
-            error_span: 0..arg.len(),
-            message: "Unknown argument.".into(),
-            long_message,
-            hint: None,
-            color: ColorMode::default(),
-        };
-        ArgError::UnknownArgument(context.into())
+        self.inner().err_unknown_argument()
     }
 
     /// Creates pretty error that there should be more arguments but there are
     /// no more arguments.
-    #[inline(always)]
+    #[inline]
     pub fn err_no_more_arguments(&self) -> ArgError {
-        err_no_more_arguments_inner(&self.args)
+        self.inner().err_no_more_arguments()
     }
 
     /// Creates error that says that the current argument has invalid value.
+    #[inline]
     pub fn err_invalid(&self) -> ArgError {
-        self.err_invalid_value(self.cur().unwrap_or_default().to_owned())
+        self.inner().err_invalid()
     }
 
     /// Creates error that says that the given part of the current argument has
     /// invalid value.
+    #[inline]
     pub fn err_invalid_value(&self, value: String) -> ArgError {
-        ArgError::InvalidValue(Box::new(ArgErrCtx::from_msg(
-            "Invalid value for argument.",
-            value,
-        )))
-        .add_args(self.args.clone(), self.cur.saturating_sub(1))
+        self.inner().err_invalid_value(value)
     }
 
     /// Creates error that says that the given part of the current argument has
     /// invalid value.
+    #[inline]
     pub fn err_invalid_span(&self, span: Range<usize>) -> ArgError {
-        let value = self.cur().unwrap_or_default();
-        if span.start > value.len() || span.end > value.len() {
-            self.err_invalid_value(value.to_owned())
-        } else {
-            ArgError::InvalidValue(Box::new(
-                ArgErrCtx::from_msg(
-                    "Invalid value for argument.",
-                    value[span.clone()].to_owned(),
-                )
-                .spanned(span),
-            ))
-        }
+        self.inner().err_invalid_span(span)
+    }
+
+    /// Adds additional information to error so that it has better error
+    /// message. Consider using [`ParegRef::cur_manual`] or
+    /// [`ParegRef::next_manual`] instead.
+    #[inline]
+    pub fn map_err(&self, err: ArgError) -> ArgError {
+        self.inner().map_err(err)
     }
 
     /// Adds additional information to error so that it has better error
@@ -861,82 +816,11 @@ impl Pareg {
     /// let arg: &str = args.cur_arg().unwrap();
     /// let arg = arg.strip_prefix("-D").unwrap();
     ///
-    /// let res: (usize, f32) = args.map_err(key_val_arg(arg, '=')).unwrap();
+    /// let res: (usize, f32) = args.map_res(key_val_arg(arg, '=')).unwrap();
     /// assert_eq!((10, 0.25), res);
     /// ```
-    pub fn map_err<T>(&self, res: Result<T>) -> Result<T> {
-        map_err_inner(&self.args, self.cur, res)
+    #[inline]
+    pub fn map_res<T>(&self, res: Result<T>) -> Result<T> {
+        self.inner().map_res(res)
     }
-}
-
-#[inline(always)]
-fn cur_inner(args: &[String], cur: usize) -> Option<&str> {
-    (cur != 0).then_some(&args[cur - 1])
-}
-
-#[inline(always)]
-fn cur_arg_inner<'a, T>(args: &'a [String], cur: usize) -> Result<T>
-where
-    T: FromArg<'a>,
-{
-    if let Some(arg) = cur_inner(args, cur) {
-        map_err_inner(args, cur, T::from_arg(arg))
-    } else {
-        Err(ArgError::NoLastArgument)
-    }
-}
-
-#[inline(always)]
-fn next_inner<'a>(args: &'a [String], cur: &mut usize) -> Option<&'a str> {
-    (*cur < args.len()).then(|| {
-        let res = &args[*cur];
-        *cur += 1;
-        res.as_str()
-    })
-}
-
-#[inline(always)]
-fn next_arg_inner<'a, T>(args: &'a [String], cur: &mut usize) -> Result<T>
-where
-    T: FromArg<'a>,
-{
-    if let Some(a) = next_inner(args, cur) {
-        map_err_inner(args, *cur, a.arg_into())
-    } else {
-        Err(err_no_more_arguments_inner(args))
-    }
-}
-
-#[inline(always)]
-pub fn cur_mval_inner<'a, T>(
-    args: &'a [String],
-    cur: usize,
-    sep: char,
-) -> Result<Option<T>>
-where
-    T: FromArg<'a>,
-{
-    map_err_inner(args, cur, mval_arg(cur_arg_inner(args, cur)?, sep))
-}
-
-#[inline(always)]
-fn map_err_inner<T>(args: &[String], cur: usize, res: Result<T>) -> Result<T> {
-    res.map_err(|e| e.add_args(args.into(), cur.saturating_sub(1)))
-}
-
-pub fn err_no_more_arguments_inner(args: &[String]) -> ArgError {
-    let pos = args.last().map_or(0, |a| a.len());
-    let long_message = args.last().map(|a| {
-        format!("Expected more arguments after the argument `{a}`.").into()
-    });
-    let context = ArgErrCtx {
-        args: args.into(),
-        error_idx: args.len() - 1,
-        error_span: pos..pos,
-        message: "Expected more arguments.".into(),
-        long_message,
-        hint: None,
-        color: ColorMode::default(),
-    };
-    ArgError::NoMoreArguments(context.into())
 }
