@@ -8,13 +8,17 @@ use crate::{
 
 /// Helper for parsing arguments.
 ///
-/// Mutable reference to pareg structure. Mutating this can mutate original
-/// [`crate::Pareg`] structure. In contrast to [`crate::Pareg`], it allows
-/// calling mutable functions while there are immutable references to the
-/// original arguments.
+/// Reference to pareg structure. Mutating this can mutate original
+/// [`crate::Pareg`] structure. You can use [`ParegRef::mutates_original`] to
+/// check if this instance will mutate original pareg.
 ///
 /// Note that the clones will not affect the original pareg even if the
-/// original [`ParegRef`] did.
+/// original [`ParegRef`] did so you can clone if you don't want to mutate the
+/// original.
+///
+/// In contrast to [`crate::Pareg`], it allows
+/// calling mutable functions while there are immutable references to the
+/// original arguments.
 #[derive(Debug)]
 pub struct ParegRef<'a> {
     args: &'a [String],
@@ -32,6 +36,20 @@ impl<'a> ParegRef<'a> {
             args,
             cur: cur.into(),
         }
+    }
+
+    /// Checks if this instance will mutate original [`crate::Pareg`]. If you
+    /// don't want to mutate the orignal, you can create clone or call
+    /// [`ParegRef::detach`].
+    #[inline]
+    pub fn mutates_original(&self) -> bool {
+        matches!(self.cur, Cow::Borrowed(_))
+    }
+
+    /// Detach from the original pareg structure. Mutating this will no longer
+    /// mutate the original [`crate::Pareg`] structure (if it did before).
+    pub fn detach(&mut self) {
+        self.cur = self.cur.to_owned();
     }
 
     /// Get the last returned argument.
