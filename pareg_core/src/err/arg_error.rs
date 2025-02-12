@@ -46,6 +46,11 @@ impl ArgError {
         Self::FailedToParse(Box::new(ArgErrCtx::from_msg(msg, arg)))
     }
 
+    /// Shortcut for creating parse error.
+    pub fn value_msg(msg: impl Into<Cow<'static, str>>, arg: String) -> Self {
+        Self::InvalidValue(Box::new(ArgErrCtx::from_msg(msg, arg)))
+    }
+
     /// Moves the span in the error message by `cnt` and changes the
     /// errornous argument to `new_arg`.
     pub fn shift_span(self, cnt: usize, new_arg: String) -> Self {

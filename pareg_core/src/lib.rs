@@ -1,5 +1,6 @@
 mod arg_into;
 mod by_ref;
+pub mod check;
 mod err;
 mod from_arg;
 mod from_read;

@@ -8,6 +8,7 @@
 - Add parsef functionality (function and macro).
 - Add `ParegRef`. It allows parsing to continue even if there are references to
   the original arguments.
+- Add checkers: `check::CheckRef`, `check::InRangeI` and `check::InRange`.
 
 ### Changes
 - Rename `Pareg::map_err` to `Pareg::map_res`, add `Pareg::map_err`.

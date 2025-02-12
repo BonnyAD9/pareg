@@ -72,6 +72,10 @@ impl<'a> Reader<'a> {
         self.map_err(ArgError::parse_msg(msg, String::new()))
     }
 
+    pub fn err_value(&self, msg: impl Into<Cow<'static, str>>) -> ArgError {
+        self.map_err(ArgError::value_msg(msg, String::new()))
+    }
+
     pub fn peek(&mut self) -> Result<Option<char>> {
         if let Some(c) = self.peek {
             Ok(Some(c))

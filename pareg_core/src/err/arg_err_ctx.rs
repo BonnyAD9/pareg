@@ -14,7 +14,7 @@ pub struct ArgErrCtx {
     pub error_idx: usize,
     /// Range within the argument that is invalid.
     pub error_span: Range<usize>,
-    /// Simple error message describing the kind of the problem.
+    /// INLINE. Simple error message describing the kind of the problem.
     pub message: Cow<'static, str>,
     /// More descriptive message describing the problem in detail.
     pub long_message: Option<Cow<'static, str>>,
@@ -30,6 +30,7 @@ impl ArgErrCtx {
     }
 
     /// Creates simple error with just message and the errornous argument.
+    /// (this is the INLINE message)
     pub fn from_msg(
         message: impl Into<Cow<'static, str>>,
         arg: String,
