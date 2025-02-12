@@ -6,6 +6,7 @@
 - Add pareg methods `try_set_cur_with`, `try_set_next_with`, `try_set_cur` and
   `try_set_next`.
 - Add parsef functionality (function and macro).
+- Add `Reader` for parsing.
 - Add `ParegRef`. It allows parsing to continue even if there are references to
   the original arguments.
 - Add checkers: `check::CheckRef`, `check::InRangeI` and `check::InRange`.
