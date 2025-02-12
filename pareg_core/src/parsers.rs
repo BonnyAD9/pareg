@@ -2,7 +2,7 @@ use crate::{
     arg_into::ArgInto,
     err::{ArgError, Result},
     from_arg::FromArg,
-    ArgErrCtx, ColorMode,
+    ArgErrCtx, ColorMode, FromRead, Reader,
 };
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
@@ -298,4 +298,51 @@ pub fn try_set_arg<'a, T: FromArg<'a>>(
     arg: &'a str,
 ) -> Result<()> {
     try_set_arg_with(res, arg, T::from_arg)
+}
+
+/// Splits `arg` by separator `sep` and parses each word into a resulting
+/// vector.
+///
+/// Difference from [`arg_list`] is that this will first to split and than try
+/// to parse.
+pub fn split_arg<'a, T: FromArg<'a>>(
+    arg: &'a str,
+    sep: &str,
+) -> Result<Vec<T>> {
+    let mut r = vec![];
+    for s in arg.split(sep) {
+        r.push(s.arg_into()?);
+    }
+    Ok(r)
+}
+
+/// Parses multiple values in `arg` separated by `sep`.
+///
+/// Unlike [`split_arg`], this will first try to parse and than check if the
+/// separator is present. So valid values may contain contents of `sep`, and
+/// it will properly parse the vales, whereas [`split_arg`] would split `arg`
+/// and than try to parse.
+pub fn arg_list<T: FromRead>(arg: &str, sep: &str) -> Result<Vec<T>> {
+    let mut res = vec![];
+    let mut reader: Reader = arg.into();
+    loop {
+        let start_pos = reader.pos().unwrap_or_default();
+        let item = T::from_read(&mut reader);
+        let Some(item) = item.res else {
+            return item.err.map_or_else(
+                || {
+                    reader
+                        .err_parse("Failed to parse.")
+                        .span_start(start_pos)
+                        .err()
+                },
+                |e| e.err(),
+            );
+        };
+        res.push(item);
+        if reader.peek()?.is_none() {
+            return Ok(res);
+        }
+        reader.expect(sep)?;
+    }
 }

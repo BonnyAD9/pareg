@@ -1,9 +1,9 @@
 use std::{borrow::Cow, cell::Cell, ops::Range};
 
 use crate::{
-    bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg, opt_bool_arg,
-    try_set_arg, try_set_arg_with, val_arg, ArgErrCtx, ArgError, ArgInto,
-    ColorMode, FromArg, Result,
+    arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
+    opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, val_arg,
+    ArgErrCtx, ArgError, ArgInto, ColorMode, FromArg, FromRead, Result,
 };
 
 /// Helper for parsing arguments.
@@ -415,6 +415,48 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     ) -> Result<()> {
         let arg = self.next_arg()?;
         self.map_res(try_set_arg(res, arg))
+    }
+
+    /// Splits last argument by separator `sep` and parses each word into a
+    /// resulting vector.
+    ///
+    /// Difference from [`ParegRef::cur_list`] is that this will first to split
+    /// and than try to parse.
+    #[inline]
+    pub fn split_cur<T: FromArg<'a>>(&self, sep: &str) -> Result<Vec<T>> {
+        self.map_res(split_arg(self.cur_arg()?, sep))
+    }
+
+    /// Parses multiple values in last argument separated by `sep`.
+    ///
+    /// Unlike [`ParegRef::split_cur`], this will first try to parse and than
+    /// check if the separator is present. So valid values may contain contents
+    /// of `sep`, and it will properly parse the vales, whereas
+    /// [`ParegRef::split_cur`] would split `arg` and than try to parse.
+    #[inline]
+    pub fn cur_list<T: FromRead>(&self, sep: &str) -> Result<Vec<T>> {
+        self.map_res(arg_list(self.cur_arg()?, sep))
+    }
+
+    /// Splits next argument by separator `sep` and parses each word into a
+    /// resulting vector.
+    ///
+    /// Difference from [`ParegRef::next_list`] is that this will first to
+    /// split and than try to parse.
+    pub fn split_next<T: FromArg<'a>>(&mut self, sep: &str) -> Result<Vec<T>> {
+        let arg = self.next_arg()?;
+        self.map_res(split_arg(arg, sep))
+    }
+
+    /// Parses multiple values in next argument separated by `sep`.
+    ///
+    /// Unlike [`ParegRef::split_next`], this will first try to parse and than
+    /// check if the separator is present. So valid values may contain contents
+    /// of `sep`, and it will properly parse the vales, whereas
+    /// [`ParegRef::split_next`] would split `arg` and than try to parse.
+    pub fn next_list<T: FromRead>(&mut self, sep: &str) -> Result<Vec<T>> {
+        let arg = self.next_arg()?;
+        self.map_res(arg_list(arg, sep))
     }
 
     /// Creates pretty error that the last argument (cur) is unknown.

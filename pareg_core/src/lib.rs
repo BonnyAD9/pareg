@@ -782,6 +782,54 @@ impl Pareg {
         self.inner().try_set_next(res)
     }
 
+    /// Splits last argument by separator `sep` and parses each word into a
+    /// resulting vector.
+    ///
+    /// Difference from [`Pareg::cur_list`] is that this will first to split
+    /// and than try to parse.
+    #[inline]
+    pub fn split_cur<'a, T: FromArg<'a>>(
+        &'a self,
+        sep: &str,
+    ) -> Result<Vec<T>> {
+        self.inner().split_cur(sep)
+    }
+
+    /// Parses multiple values in last argument separated by `sep`.
+    ///
+    /// Unlike [`Pareg::split_cur`], this will first try to parse and than
+    /// check if the separator is present. So valid values may contain contents
+    /// of `sep`, and it will properly parse the vales, whereas
+    /// [`Pareg::split_cur`] would split `arg` and than try to parse.
+    #[inline]
+    pub fn cur_list<T: FromRead>(&self, sep: &str) -> Result<Vec<T>> {
+        self.inner().cur_list(sep)
+    }
+
+    /// Splits next argument by separator `sep` and parses each word into a
+    /// resulting vector.
+    ///
+    /// Difference from [`Pareg::next_list`] is that this will first to split
+    /// and than try to parse.
+    #[inline]
+    pub fn split_next<'a, T: FromArg<'a>>(
+        &'a mut self,
+        sep: &str,
+    ) -> Result<Vec<T>> {
+        self.inner().split_next(sep)
+    }
+
+    /// Parses multiple values in next argument separated by `sep`.
+    ///
+    /// Unlike [`Pareg::split_next`], this will first try to parse and than
+    /// check if the separator is present. So valid values may contain contents
+    /// of `sep`, and it will properly parse the vales, whereas
+    /// [`Pareg::split_next`] would split `arg` and than try to parse.
+    #[inline]
+    pub fn next_list<T: FromRead>(&mut self, sep: &str) -> Result<Vec<T>> {
+        self.inner().next_list(sep)
+    }
+
     /// Creates pretty error that the last argument (cur) is unknown.
     #[inline]
     pub fn err_unknown_argument(&self) -> ArgError {

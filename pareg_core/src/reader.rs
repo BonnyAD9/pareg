@@ -85,6 +85,25 @@ impl<'a> Reader<'a> {
         }
     }
 
+    pub fn expect(&mut self, s: &str) -> Result<()> {
+        let start_pos = self.pos().unwrap_or_default();
+        let err = |this: &Self| {
+            this.err_parse(format!("Expected `{s}`."))
+                .span_start(start_pos)
+                .err()
+        };
+        for c in s.chars() {
+            let Some(c2) = self.next().transpose()? else {
+                return err(self);
+            };
+            if c != c2 {
+                return err(self);
+            }
+        }
+
+        Ok(())
+    }
+
     fn res<T>(&self, res: Result<T>) -> Result<T> {
         res.map_err(|e| self.map_err(e))
     }
