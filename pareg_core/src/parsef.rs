@@ -2,11 +2,18 @@ use std::borrow::Cow;
 
 use crate::{ArgError, Reader, Result, SetFromRead};
 
+/// Argument to [`parsef`] describing expected operation.
 pub enum ParseFArg<'a> {
+    /// Expect a string.
     Str(Cow<'a, str>),
+    /// Expect to parse to the given value.
     Arg(&'a mut dyn SetFromRead),
 }
 
+/// Parsef implementation. Parse all data in `r` based on `args`.
+///
+/// This is usually used by the `parsef!` macro, but nothing forbids you from
+/// constructing the parse operation at runtime.
 pub fn parsef<'a>(
     r: &mut Reader,
     args: impl AsMut<[ParseFArg<'a>]>,
@@ -19,6 +26,10 @@ pub fn parsef<'a>(
     }
 }
 
+/// Parsef part implementation. Parse part of data in `r`, based on `args`.
+///
+/// This is usually used by the `parsef_part!` macro, but nothing forbids you
+/// from constructing the parse operation at runtime.
 pub fn parsef_part<'a>(
     r: &mut Reader,
     mut args: impl AsMut<[ParseFArg<'a>]>,
@@ -28,30 +39,11 @@ pub fn parsef_part<'a>(
         last_err = match a {
             ParseFArg::Arg(a) => a.set_from_read(r)?,
             ParseFArg::Str(a) => {
-                match_prefix(a, r)?;
+                r.expect(a)?;
                 None
             }
         };
     }
 
     Ok(last_err)
-}
-
-pub fn match_prefix(prefix: &str, r: &mut Reader) -> Result<()> {
-    // TODO better error on first fail
-    for p in prefix.chars() {
-        let Some(s) = r.next().transpose()? else {
-            return r
-                .err_parse("Unexpected end of string.")
-                .inline_msg(format!("Expected `{p}`"))
-                .err();
-        };
-        if p != s {
-            return r
-                .err_parse(format!("Unexpected character `{s}`."))
-                .inline_msg(format!("Expected `{p}`."))
-                .err();
-        }
-    }
-    Ok(())
 }

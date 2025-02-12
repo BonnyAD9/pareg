@@ -86,21 +86,20 @@ impl<'a> Reader<'a> {
     }
 
     pub fn expect(&mut self, s: &str) -> Result<()> {
-        let start_pos = self.pos().unwrap_or_default();
-        let err = |this: &Self| {
-            this.err_parse(format!("Expected `{s}`."))
-                .span_start(start_pos)
-                .err()
-        };
-        for c in s.chars() {
-            let Some(c2) = self.next().transpose()? else {
-                return err(self);
+        for p in s.chars() {
+            let Some(s) = self.next().transpose()? else {
+                return self
+                    .err_parse("Unexpected end of string.")
+                    .inline_msg(format!("Expected `{p}` to form `{s}`"))
+                    .err();
             };
-            if c != c2 {
-                return err(self);
+            if p != s {
+                return self
+                    .err_parse(format!("Unexpected character `{s}`."))
+                    .inline_msg(format!("Expected `{p}` to form `{s}`."))
+                    .err();
             }
         }
-
         Ok(())
     }
 

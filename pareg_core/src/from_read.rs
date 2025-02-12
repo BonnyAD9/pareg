@@ -1,11 +1,40 @@
 use crate::{reader::Reader, ArgError};
 
+/// Result of [`FromRead`] operation.
+///
+/// Contains optional value and optional error (both may be present). If both
+/// value and error is present, the error represents error that would occur if
+/// more of the input was expected to be parsed.
+///
+/// If `err` is [`None`] than `res` should always be [`Some`], but faulty
+/// implementor may return such result.
 pub struct ParseResult<T> {
+    /// Error of the parse operation.
+    ///
+    /// When `res` is [`None`], parsing failed and this is the error. If `res`
+    /// is [`Some`], this is error that would occur if more of the input is
+    /// expected to be consumed.
+    ///
+    /// If this is [`None`], it usualy means that all of the input was
+    /// consumed, and it was parsed successfully.
+    ///
+    /// This should never be [`None`] if `res` is [`None`].
     pub err: Option<ArgError>,
+    /// Result of the parse operation.
+    ///
+    /// If this is [`None`], parsing has failed and `err` contains the error.
+    /// Otherwise parsing was successfull. `err` can also contain error that
+    /// would occur if more of the input was expected to be parsed.
+    ///
+    /// If this is [`None`], `err` should never be [`None`].
     pub res: Option<T>,
 }
 
+/// Trait similar to [`crate::FromArg`]. Difference is that this may parse only
+/// part of the input.
 pub trait FromRead: Sized {
+    /// Parses part of the input from the reader. See [`ParseResult`] for more
+    /// info about how to interpret the result.
     fn from_read(r: &mut Reader) -> ParseResult<Self>;
 }
 
