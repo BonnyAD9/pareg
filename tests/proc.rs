@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use pareg::{check, ArgError, FromArg};
-use pareg_proc::{parsef, parsef_part};
+use pareg_proc::parsef_part;
 
 #[test]
 pub fn test_from_arg() {
