@@ -10,11 +10,12 @@ mod parsef;
 mod parsers;
 pub mod proc;
 mod reader;
+mod set_from_read;
 mod starts;
 
 pub use crate::{
     arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, pareg_ref::*,
-    parsef::*, parsers::*, reader::*,
+    parsef::*, parsers::*, reader::*, set_from_read::*,
 };
 
 use std::{borrow::Cow, cell::Cell, env, ops::Range};
