@@ -102,7 +102,7 @@
 //! ```
 
 pub use pareg_core::*;
-pub use pareg_proc::FromArg;
+pub use pareg_proc::*;
 
 #[cfg(test)]
 mod tests {

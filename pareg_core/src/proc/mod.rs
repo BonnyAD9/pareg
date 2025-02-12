@@ -1,2 +1,4 @@
-pub mod from_arg;
-pub mod parsef;
+mod from_arg;
+mod parsef;
+
+pub use self::{from_arg::*, parsef::*};

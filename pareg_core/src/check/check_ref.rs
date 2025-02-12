@@ -1,17 +1,21 @@
-use crate::{ParseF, Result};
+use crate::{Reader, Result, SetFromRead};
 
-pub struct CheckRef<'a, T: ParseF, F: Fn(&T) -> Result<()>>(
-    pub &'a mut T,
-    pub F,
-);
+pub struct CheckRef<
+    'a,
+    T: SetFromRead,
+    F: Fn(&Reader, usize, &T) -> Result<()>,
+>(pub &'a mut T, pub F);
 
-impl<T: ParseF, F: Fn(&T) -> Result<()>> ParseF for CheckRef<'_, T, F> {
+impl<T: SetFromRead, F: Fn(&Reader, usize, &T) -> Result<()>> SetFromRead
+    for CheckRef<'_, T, F>
+{
     fn set_from_read(
         &mut self,
-        r: &mut crate::Reader,
+        r: &mut Reader,
     ) -> Result<Option<crate::ArgError>> {
+        let pos = r.pos().unwrap_or_default();
         match self.0.set_from_read(r) {
-            Ok(r) => self.1(self.0).map(|_| r),
+            Ok(res) => self.1(r, pos, self.0).map(|_| res),
             e => e,
         }
     }

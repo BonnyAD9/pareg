@@ -2,11 +2,11 @@ use std::borrow::Cow;
 
 use crate::{ArgError, FromRead, Reader, Result};
 
-pub trait ParseF {
+pub trait SetFromRead {
     fn set_from_read(&mut self, r: &mut Reader) -> Result<Option<ArgError>>;
 }
 
-impl<T: FromRead> ParseF for T {
+impl<T: FromRead> SetFromRead for T {
     fn set_from_read(&mut self, r: &mut Reader) -> Result<Option<ArgError>> {
         let start = r.pos().unwrap_or_default();
         let res = Self::from_read(r);
@@ -23,7 +23,7 @@ impl<T: FromRead> ParseF for T {
 
 pub enum ParseFArg<'a> {
     Str(Cow<'a, str>),
-    Arg(&'a mut dyn ParseF),
+    Arg(&'a mut dyn SetFromRead),
 }
 
 pub fn parsef<'a>(

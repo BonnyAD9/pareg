@@ -15,7 +15,7 @@ macro_rules! impl_from_read {
             fn from_read(r: &mut Reader) -> ParseResult<Self> {
                 const RADIX: u32 = 10;
                 let mut res: Self = 0;
-                let start_pos = r.pos().unwrap_or_default();
+                let start_pos = r.pos();
 
                 macro_rules! unwrap_or_exit {
                     ($v:expr, $msg:literal) => {
@@ -55,7 +55,7 @@ macro_rules! impl_from_read {
                                 r2.and_then(|r| r.$op(d as Self)).ok_or_else(||
                                     r.err_parse(
                                         "Number doesn't fit the target type."
-                                    ).span_start(start_pos)
+                                    ).span_start(start_pos.unwrap_or_default())
                                         .hint(format!(
                                             "Value must be in range from `{}` \
                                             to `{}`.",
@@ -82,7 +82,7 @@ macro_rules! impl_from_read {
 
                 ParseResult {
                     err: None,
-                    res: (start_pos != r.pos().unwrap_or_default())
+                    res: (start_pos != r.pos())
                         .then_some(res)
                 }
             }

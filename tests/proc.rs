@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
-use pareg::{check, ArgError, FromArg};
-use pareg_proc::parsef_part;
+use pareg::{check, parsef, parsef_part, ArgError, FromArg};
 
 #[test]
 pub fn test_from_arg() {
@@ -40,7 +39,7 @@ pub fn test_parsef() {
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let mut res = Self::default();
-            parsef_part!(
+            parsef!(
                 &mut s.into(),
                 "{}.{}.{}.{}/{}",
                 &mut res.adr.0,
@@ -56,6 +55,26 @@ pub fn test_parsef() {
 
     assert_eq!(
         Address::from_str("127.5.20.1/24").unwrap(),
+        Address {
+            adr: (127, 5, 20, 1),
+            mask: 24
+        }
+    );
+
+    let mut adr = Address::default();
+    let res = parsef_part!(
+        &mut "127.5.20.1/24some other stuff".into(),
+        "{}.{}.{}.{}/{}",
+        &mut adr.adr.0,
+        &mut adr.adr.1,
+        &mut adr.adr.2,
+        &mut adr.adr.3,
+        &mut check::InRange(&mut adr.mask, 0..33),
+    );
+    assert!(res.is_ok());
+
+    assert_eq!(
+        adr,
         Address {
             adr: (127, 5, 20, 1),
             mask: 24
