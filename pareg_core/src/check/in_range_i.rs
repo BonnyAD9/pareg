@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 use crate::{ArgErrCtx, ArgError, FromArg, FromArgStr};
 
+/// Wraps type, so that its [`FromArg`] implementation also checks that the
+/// given value is in the range given by const parameters.
 pub struct InRangeI<
     T: TryInto<i128> + Copy + for<'a> FromArg<'a>,
     const START: i128,

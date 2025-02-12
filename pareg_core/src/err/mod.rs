@@ -1,3 +1,5 @@
+//! This module contains implementation of errors in pareg.
+
 mod arg_err_ctx;
 mod arg_error;
 mod color_mode;

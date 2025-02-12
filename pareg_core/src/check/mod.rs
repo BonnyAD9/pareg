@@ -1,3 +1,6 @@
+//! This module provides types that allow checking for values even if the given
+//! type is parsed.
+
 mod check_ref;
 mod in_range;
 mod in_range_i;

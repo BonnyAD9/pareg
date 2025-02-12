@@ -5,6 +5,8 @@ use std::{
 
 use crate::{Result, SetFromRead};
 
+/// Wraps [`SetFromRead`] implementation of type, so that it chechs that its
+/// value is in the given range.
 pub struct InRange<
     'a,
     T: SetFromRead + PartialOrd + Display,

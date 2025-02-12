@@ -1,5 +1,7 @@
 use crate::{Reader, Result, SetFromRead};
 
+/// Wraps [`SetFromRead`] implementation of type so that it also checks for
+/// valid values with the given function.
 pub struct CheckRef<
     'a,
     T: SetFromRead,
