@@ -1,4 +1,4 @@
-use crate::{reader::Reader, ArgError};
+use crate::{reader::Reader, ArgError, Result};
 
 /// Result of [`FromRead`] operation.
 ///
@@ -120,3 +120,23 @@ macro_rules! impl_from_read {
 }
 
 impl_from_read!(u8, u16, u32, u64, usize, -i8, -i16, -i32, -i64, -isize);
+
+impl<T> ParseResult<T> {
+    pub fn new(v: T, res: Result<Option<ArgError>>) -> Self {
+        match res {
+            Ok(err) => Self::success(v, err),
+            Err(err) => Self::failure(err),
+        }
+    }
+
+    pub fn success(v: T, err: Option<ArgError>) -> Self {
+        Self { res: Some(v), err }
+    }
+
+    pub fn failure(err: ArgError) -> Self {
+        Self {
+            res: None,
+            err: Some(err),
+        }
+    }
+}

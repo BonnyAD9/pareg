@@ -275,6 +275,16 @@ where
 
 /// Tries to set the value of `res` to some if it is none. Throws error if it
 /// is some.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::{try_set_arg_with, ArgInto};
+///
+/// let mut res: Option<i32> = None;
+/// assert!(try_set_arg_with(&mut res, "-20", |a| a.arg_into()).is_ok());
+/// assert_eq!(res, Some(-20));
+/// assert!(try_set_arg_with(&mut res, "-20", |a| a.arg_into()).is_err());
+/// ```
 pub fn try_set_arg_with<'a, T>(
     res: &mut Option<T>,
     arg: &'a str,
@@ -293,6 +303,16 @@ pub fn try_set_arg_with<'a, T>(
 
 /// Tries to set the value of `res` to some if it is none. Throws error if it
 /// is some.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::{try_set_arg};
+///
+/// let mut res: Option<i32> = None;
+/// assert!(try_set_arg(&mut res, "-20").is_ok());
+/// assert_eq!(res, Some(-20));
+/// assert!(try_set_arg(&mut res, "-20").is_err());
+/// ```
 pub fn try_set_arg<'a, T: FromArg<'a>>(
     res: &mut Option<T>,
     arg: &'a str,
@@ -305,6 +325,13 @@ pub fn try_set_arg<'a, T: FromArg<'a>>(
 ///
 /// Difference from [`arg_list`] is that this will first to split and than try
 /// to parse.
+///
+/// # Examples
+/// ```rust
+/// use pareg_core::split_arg;
+///
+/// assert_eq!(split_arg::<i32>("1,2,3", ",").unwrap(), vec![1, 2, 3]);
+/// ```
 pub fn split_arg<'a, T: FromArg<'a>>(
     arg: &'a str,
     sep: &str,
@@ -322,6 +349,25 @@ pub fn split_arg<'a, T: FromArg<'a>>(
 /// separator is present. So valid values may contain contents of `sep`, and
 /// it will properly parse the vales, whereas [`split_arg`] would split `arg`
 /// and than try to parse.
+///
+/// # Examples
+/// ```ignore
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// struct Pair(i32, i32);
+///
+/// impl FromRead for Pair {
+///     fn from_read(r: &mut pareg::Reader) -> ParseResult<Self> {
+///         let mut v = Pair::default();
+///         let r = parsef_part!(r, "({},{})", &mut v.0, &mut v.1);
+///         ParseResult::new(v, r)
+///     }
+/// }
+///
+/// assert_eq!(
+///     arg_list::<Pair>("(1,2),(3,4),(5,6)", ",").unwrap(),
+///     vec![Pair(1, 2), Pair(3, 4), Pair(5, 6)],
+/// );
+/// ```
 pub fn arg_list<T: FromRead>(arg: &str, sep: &str) -> Result<Vec<T>> {
     let mut res = vec![];
     let mut reader: Reader = arg.into();
