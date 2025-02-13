@@ -12,6 +12,7 @@
 - Add checkers: `check::CheckRef`, `check::InRangeI` and `check::InRange`.
 - Add new parsers `split_arg` and `arg_list` and their respective methods on
   `ParegRef` and `Pareg`.
+- Add new macros `impl_from_str_with_read!` and `impl_from_arg_str_with_read!`.
 
 ### Changes
 - Rename `Pareg::map_err` to `Pareg::map_res`, add `Pareg::map_err`.

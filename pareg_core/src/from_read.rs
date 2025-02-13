@@ -1,47 +1,20 @@
 use crate::{reader::Reader, ArgError, Result};
 
-/// Result of [`FromRead`] operation.
-///
-/// Contains optional value and optional error (both may be present). If both
-/// value and error is present, the error represents error that would occur if
-/// more of the input was expected to be parsed.
-///
-/// If `err` is [`None`] than `res` should always be [`Some`], but faulty
-/// implementor may return such result.
-pub struct ParseResult<T> {
-    /// Error of the parse operation.
-    ///
-    /// When `res` is [`None`], parsing failed and this is the error. If `res`
-    /// is [`Some`], this is error that would occur if more of the input is
-    /// expected to be consumed.
-    ///
-    /// If this is [`None`], it usualy means that all of the input was
-    /// consumed, and it was parsed successfully.
-    ///
-    /// This should never be [`None`] if `res` is [`None`].
-    pub err: Option<ArgError>,
-    /// Result of the parse operation.
-    ///
-    /// If this is [`None`], parsing has failed and `err` contains the error.
-    /// Otherwise parsing was successfull. `err` can also contain error that
-    /// would occur if more of the input was expected to be parsed.
-    ///
-    /// If this is [`None`], `err` should never be [`None`].
-    pub res: Option<T>,
-}
-
 /// Trait similar to [`crate::FromArg`]. Difference is that this may parse only
 /// part of the input.
 pub trait FromRead: Sized {
-    /// Parses part of the input from the reader. See [`ParseResult`] for more
-    /// info about how to interpret the result.
-    fn from_read(r: &mut Reader) -> ParseResult<Self>;
+    /// Parses part of the input from the reader. On failure returns Err. On
+    /// success returns the parsed value, and optionally also error that would
+    /// occur if more of the input was expected to be parsed. If this returns
+    /// successfully and there is no error, it usually means that all of the
+    /// input from reader was consumed.
+    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)>;
 }
 
 macro_rules! impl_from_read {
     ($($(-$it:ident)? $($ut:ident)?),* $(,)?) => {
         $(impl FromRead for $($it)? $($ut)? {
-            fn from_read(r: &mut Reader) -> ParseResult<Self> {
+            fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
                 const RADIX: u32 = 10;
                 let mut res: Self = 0;
                 let start_pos = r.pos();
@@ -50,10 +23,7 @@ macro_rules! impl_from_read {
                     ($v:expr, $msg:literal) => {
                         match $v {
                             Some(v) => v,
-                            None => return ParseResult {
-                                err: Some(r.err_parse($msg)),
-                                res: Some(res),
-                            }
+                            None => return Ok((res, Some(r.err_parse($msg)))),
                         }
                     };
                 }
@@ -62,10 +32,7 @@ macro_rules! impl_from_read {
                     ($v:expr) => {
                         match $v {
                             Ok(r) => r,
-                            Err(e) => return ParseResult {
-                                err: Some(e),
-                                res: Some(res),
-                            }
+                            Err(e) => return Ok((res, Some(e))),
                         }
                     };
                 }
@@ -109,10 +76,10 @@ macro_rules! impl_from_read {
 
                 $(loop_signed!(checked_add, $ut);)?
 
-                ParseResult {
-                    err: None,
-                    res: (start_pos != r.pos())
-                        .then_some(res)
+                if start_pos == r.pos() {
+                    Err(r.err_parse("Expected at least one digit."))
+                } else {
+                    Ok((res, None))
                 }
             }
         })*
@@ -121,22 +88,56 @@ macro_rules! impl_from_read {
 
 impl_from_read!(u8, u16, u32, u64, usize, -i8, -i16, -i32, -i64, -isize);
 
-impl<T> ParseResult<T> {
-    pub fn new(v: T, res: Result<Option<ArgError>>) -> Self {
-        match res {
-            Ok(err) => Self::success(v, err),
-            Err(err) => Self::failure(err),
-        }
-    }
+/// Implements [`std::str::FromStr`] for type that implements [`FromRead`].
+///
+/// In future this may be deprecated in favor of derive macro.
+#[macro_export]
+macro_rules! impl_from_str_with_read {
+    ($($typ:ident)::*$(<$($gen:tt),*?> $(where $($con:tt),*)?)?) => {
+        impl$(<$($gen),*>)? std::str::FromStr for $($typ)::*$(<$($gen),*>
+        $(where $($con),*)?)?
+        {
+            type Err = $crate::ArgError;
 
-    pub fn success(v: T, err: Option<ArgError>) -> Self {
-        Self { res: Some(v), err }
-    }
-
-    pub fn failure(err: ArgError) -> Self {
-        Self {
-            res: None,
-            err: Some(err),
+            fn from_str(s: &str) -> $crate::Result<Self> {
+                use $crate::FromRead;
+                let (val, err) = Self::from_read(&mut s.into())?;
+                if let Some(err) = err {
+                    Err(err)
+                } else {
+                    Ok(val)
+                }
+            }
         }
-    }
+    };
+}
+
+/// Implements [`std::str::FromStr`] and [`crate::FromArg`] for type that
+/// implements [`FromRead`].
+///
+/// In future this may be deprecated in favor of derive macros.
+#[macro_export]
+macro_rules! impl_from_arg_str_with_read {
+    ($($typ:ident)::*$(<$($gen:tt),*?> $(where $($con:tt),*)?)?) => {
+        impl$(<$($gen),*>)? std::str::FromStr for $($typ)::*$(<$($gen),*>
+        $(where $($con),*)?)?
+        {
+            type Err = $crate::ArgError;
+
+            fn from_str(s: &str) -> $crate::Result<Self> {
+                use $crate::FromRead;
+                let (val, err) = Self::from_read(&mut s.into())?;
+                if let Some(err) = err {
+                    Err(err)
+                } else {
+                    Ok(val)
+                }
+            }
+        }
+
+        impl$(<$($gen),*>)? $crate::FromArgStr for $($typ)::*$(<$($gen),*>
+        $(where $($con),*)?)?
+        {
+        }
+    };
 }

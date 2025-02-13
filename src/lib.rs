@@ -145,9 +145,9 @@ mod tests {
     fn from_read_int() {
         use pareg_core::FromRead;
 
-        assert_eq!(u32::from_read(&mut "546".into()).res, Some(546));
-        assert_eq!(i32::from_read(&mut "546".into()).res, Some(546));
-        assert_eq!(i32::from_read(&mut "-546".into()).res, Some(-546));
+        assert_eq!(u32::from_read(&mut "546".into()).unwrap().0, 546);
+        assert_eq!(i32::from_read(&mut "546".into()).unwrap().0, 546);
+        assert_eq!(i32::from_read(&mut "-546".into()).unwrap().0, -546);
     }
 
     #[test]
