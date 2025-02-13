@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "pareg"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "pareg_core",
  "pareg_proc",
@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -47,7 +47,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_proc"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "pareg_core",
 ]
