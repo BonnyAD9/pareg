@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.8.0
 ### New features
 - Add parsers `try_set_arg_with` and `try_set_arg`.
 - Add pareg methods `try_set_cur_with`, `try_set_next_with`, `try_set_cur` and
