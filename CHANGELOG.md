@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## future
+### New features
+- Add `FromRead` implementations for `bool`, `char`, `String`, `PathBuf`,
+  `OsString`, `Ipv4Addr` and `SocketAddrV4`.
+
 ## v0.8.0
 ### New features
 - Add parsers `try_set_arg_with` and `try_set_arg`.
