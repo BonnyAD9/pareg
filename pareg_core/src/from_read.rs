@@ -4,6 +4,8 @@ use std::{
     path::PathBuf,
 };
 
+use minimal_lexical::Float;
+
 use crate::{parsef_part, reader::Reader, ArgError, ParseFArg, Result};
 
 /// Trait similar to [`crate::FromArg`]. Difference is that this may parse only
@@ -17,7 +19,7 @@ pub trait FromRead: Sized {
     fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)>;
 }
 
-macro_rules! impl_from_read {
+macro_rules! impl_from_read_int {
     ($($(-$it:ident)? $($ut:ident)?),* $(,)?) => {
         $(impl FromRead for $($it)? $($ut)? {
             fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
@@ -73,7 +75,7 @@ macro_rules! impl_from_read {
 
                 $(
                     if matches!(pass_or_exit!(r.peek()), Some('-')) {
-                        pass_or_exit!(r.next().transpose());
+                        pass_or_exit!(r.next());
                         loop_signed!(checked_sub, $it);
                     } else {
                         loop_signed!(checked_add, $it);
@@ -92,7 +94,19 @@ macro_rules! impl_from_read {
     };
 }
 
-impl_from_read!(u8, u16, u32, u64, usize, -i8, -i16, -i32, -i64, -isize);
+impl_from_read_int!(u8, u16, u32, u64, usize, -i8, -i16, -i32, -i64, -isize);
+
+macro_rules! impl_from_read_float {
+    ($($t:ident),* $(,)?) => {
+        $(impl FromRead for $t {
+            fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+                float_from_read(r)
+            }
+        })*
+    };
+}
+
+impl_from_read_float!(f32, f64);
 
 /// Implements [`std::str::FromStr`] for type that implements [`FromRead`].
 ///
@@ -169,7 +183,7 @@ impl FromRead for bool {
 
 impl FromRead for char {
     fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
-        let Some(c) = r.next().transpose()? else {
+        let Some(c) = r.next()? else {
             return Err(r.err_parse("Expected character."));
         };
         Ok((c, None))
@@ -232,5 +246,67 @@ impl FromRead for SocketAddrV4 {
             ],
         )?;
         Ok((SocketAddrV4::new(adr, port), r))
+    }
+}
+
+fn float_from_read<F: Float>(r: &mut Reader) -> Result<(F, Option<ArgError>)> {
+    let neg = r.is_next_some('-')?;
+    if !neg {
+        r.is_next_some('+')?;
+    }
+
+    let mut frac = String::new();
+    let mut dot = None;
+    r.skip_while(|c| {
+        if dot.is_none() && c == '.' {
+            dot = Some(frac.len());
+            return true;
+        }
+        if c.is_ascii_digit() {
+            if !frac.is_empty() || c != '0' {
+                frac.push(c);
+            }
+            true
+        } else {
+            false
+        }
+    })?;
+
+    if !r.is_next(|c| matches!(c, Some('e' | 'E')))? {
+        return Ok((
+            float_final_parse(neg, &frac, dot, 0),
+            r.peek()?.map(|c| {
+                r.err_parse(format!(
+                    "Invalid char `{c}`. Expected digit, `e` or `E`"
+                ))
+            }),
+        ));
+    }
+
+    let (exp, err) = r.parse::<i32>()?;
+    Ok((float_final_parse(neg, &frac, dot, exp), err))
+}
+
+fn float_final_parse<F: Float>(
+    neg: bool,
+    frac: &str,
+    dot: Option<usize>,
+    exp: i32,
+) -> F {
+    let (int, frac) = if let Some(dot) = dot {
+        frac.split_at(dot)
+    } else {
+        (frac, "")
+    };
+
+    let r: F = minimal_lexical::parse_float(
+        int.as_bytes().iter(),
+        frac.as_bytes().iter(),
+        exp,
+    );
+    if neg {
+        -r
+    } else {
+        r
     }
 }

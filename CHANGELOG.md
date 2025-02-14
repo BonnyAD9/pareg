@@ -2,8 +2,14 @@
 
 ## future
 ### New features
-- Add `FromRead` implementations for `bool`, `char`, `String`, `PathBuf`,
-  `OsString`, `Ipv4Addr` and `SocketAddrV4`.
+- Add `FromRead` implementations for `f32`, `f64`, `bool`, `char`, `String`,
+  `PathBuf`, `OsString`, `Ipv4Addr` and `SocketAddrV4`.
+- Add new methods to `Reader`: `skip_while`, `is_next_some`, `is_next`,
+  `chars`, `parse` and `next`.
+
+### Changes
+- `Reader` no longer implements the iterator trait. Use `.chars()` to get
+  iterator over chars.
 
 ## v0.8.0
 ### New features

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, io::Read};
 
-use crate::{ArgError, Result};
+use crate::{ArgError, FromRead, Result};
 
 enum ReaderSource<'a> {
     Io(Box<dyn Read + 'a>),
@@ -16,12 +16,15 @@ pub struct Reader<'a> {
     pos: usize,
 }
 
+/// Char iterator over reader.
+pub struct ReaderChars<'r, 'a>(&'r mut Reader<'a>);
+
 impl<'a> Reader<'a> {
     /// Read at most `max` chars to the given string.
     pub fn read_to(&mut self, s: &mut String, max: usize) -> Result<()> {
         s.reserve(self.bytes_size_hint().min(max));
         let target = s.len() + max;
-        for c in self {
+        for c in self.chars() {
             s.push(c?);
             if s.len() == target {
                 break;
@@ -33,7 +36,7 @@ impl<'a> Reader<'a> {
     /// Read all the remaining chars to the given string.
     pub fn read_all(&mut self, s: &mut String) -> Result<()> {
         s.reserve(self.bytes_size_hint());
-        for c in self {
+        for c in self.chars() {
             s.push(c?);
         }
         Ok(())
@@ -80,14 +83,16 @@ impl<'a> Reader<'a> {
         if let Some(c) = self.peek {
             Ok(Some(c))
         } else {
-            self.peek = self.next().transpose()?;
+            self.peek = self.next()?;
             Ok(self.peek)
         }
     }
 
+    /// Match the given string to the output. If it doesn't match, return
+    /// error.
     pub fn expect(&mut self, s: &str) -> Result<()> {
         for p in s.chars() {
-            let Some(s) = self.next().transpose()? else {
+            let Some(s) = self.next()? else {
                 return self
                     .err_parse("Unexpected end of string.")
                     .inline_msg(format!("Expected `{p}` to form `{s}`"))
@@ -103,6 +108,79 @@ impl<'a> Reader<'a> {
         Ok(())
     }
 
+    /// Skips characters while the given function matches.
+    pub fn skip_while(
+        &mut self,
+        mut f: impl FnMut(char) -> bool,
+    ) -> Result<()> {
+        while let Some(c) = self.peek()? {
+            if !f(c) {
+                break;
+            }
+            self.next()?;
+        }
+        Ok(())
+    }
+
+    /// Checks if the next char is the given char. If yes, returns true and
+    /// moves to the next position.
+    pub fn is_next_some(&mut self, c: char) -> Result<bool> {
+        if matches!(self.peek()?, Some(v) if v == c) {
+            self.next()?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Checks if the next value matches the predicate. If yes, returns true
+    /// and moves to the next position.
+    pub fn is_next(
+        &mut self,
+        p: impl FnOnce(Option<char>) -> bool,
+    ) -> Result<bool> {
+        if p(self.peek()?) {
+            self.next()?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Gets the next character.
+    #[allow(clippy::should_implement_trait)]
+    pub fn next(&mut self) -> Result<Option<char>> {
+        if let Some(r) = self.peek {
+            self.peek = None;
+            return Ok(Some(r));
+        }
+
+        let r = match &mut self.source {
+            ReaderSource::Io(io) => read_char(io.as_mut()),
+            ReaderSource::Str(s) => Ok(s[self.pos..].chars().next()),
+            ReaderSource::Iter(i) => Ok(i.next()),
+            ReaderSource::IterErr(i) => i.next().transpose(),
+        };
+
+        match r {
+            Ok(Some(r)) => {
+                self.pos += r.len_utf8();
+                Ok(Some(r))
+            }
+            e => self.res(e),
+        }
+    }
+
+    /// Gets iterator over chars.
+    pub fn chars(&mut self) -> ReaderChars<'_, 'a> {
+        ReaderChars(self)
+    }
+
+    /// Parses the next value.
+    pub fn parse<T: FromRead>(&mut self) -> Result<(T, Option<ArgError>)> {
+        T::from_read(self)
+    }
+
     fn res<T>(&self, res: Result<T>) -> Result<T> {
         res.map_err(|e| self.map_err(e))
     }
@@ -116,37 +194,19 @@ impl<'a> Reader<'a> {
     }
 }
 
-impl Iterator for Reader<'_> {
+impl Iterator for ReaderChars<'_, '_> {
     type Item = Result<char>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(r) = self.peek {
-            self.peek = None;
-            return Some(Ok(r));
-        }
-
-        let r = match &mut self.source {
-            ReaderSource::Io(io) => read_char(io.as_mut()),
-            ReaderSource::Str(s) => Ok(s[self.pos..].chars().next()),
-            ReaderSource::Iter(i) => Ok(i.next()),
-            ReaderSource::IterErr(i) => i.next().transpose(),
-        };
-
-        match r {
-            Ok(Some(r)) => {
-                self.pos += r.len_utf8();
-                Some(Ok(r))
-            }
-            e => self.res(e).transpose(),
-        }
+        self.0.next().transpose()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        match &self.source {
-            ReaderSource::Io(_) => (self.peek.is_some() as usize, None),
+        match &self.0.source {
+            ReaderSource::Io(_) => (self.0.peek.is_some() as usize, None),
             ReaderSource::Str(s) => (
-                self.peek.is_some() as usize + (s.len() - self.pos) / 4,
-                Some(self.peek.is_some() as usize + s.len() - self.pos),
+                self.0.peek.is_some() as usize + (s.len() - self.0.pos) / 4,
+                Some(self.0.peek.is_some() as usize + s.len() - self.0.pos),
             ),
             ReaderSource::Iter(i) => i.size_hint(),
             ReaderSource::IterErr(i) => i.size_hint(),

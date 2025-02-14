@@ -11,6 +11,7 @@ readme = "../README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+minimal-lexical = "0.2.1"
 thiserror = "2.0.11"
 proc-macro2 = "1.0.93"
 syn = { version = "2.0.98", features = ["full"]}

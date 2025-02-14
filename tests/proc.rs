@@ -80,4 +80,18 @@ pub fn test_parsef() {
             mask: 24
         }
     );
+
+    let mut a = (0., 0., 0.);
+    let res = parsef!(
+        &mut "3.1415/1.5E3/-.2".into(),
+        "{}/{}/{}",
+        &mut a.0,
+        &mut a.1,
+        &mut a.2,
+    );
+
+    assert!(res.is_ok());
+    assert_eq!(a.0, 3.1415);
+    assert_eq!(a.1, 1.5E3);
+    assert_eq!(a.2, -0.2);
 }
