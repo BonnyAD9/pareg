@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.9.0
 ### New features
 - Add `FromRead` implementations for `f32`, `f64`, `bool`, `char`, `String`,
   `PathBuf`, `OsString`, `Ipv4Addr` and `SocketAddrV4`.
