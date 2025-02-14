@@ -23,7 +23,7 @@ impl<
             ArgError::InvalidValue(
                 ArgErrCtx::from_msg(
                     format!(
-                        "Invalid value. Value must be in rang from \
+                        "Invalid value. Value must be in range from \
                         {START} to {END}."
                     ),
                     s.to_string(),

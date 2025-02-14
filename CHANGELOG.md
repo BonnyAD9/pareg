@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## future
+### Fixes
+- Fix typo in error message.
+
 ## v0.9.0
 ### New features
 - Add `FromRead` implementations for `f32`, `f64`, `bool`, `char`, `String`,
