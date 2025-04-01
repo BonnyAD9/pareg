@@ -6,7 +6,7 @@ use std::{
 
 use minimal_lexical::Float;
 
-use crate::{parsef_part, reader::Reader, ArgError, ParseFArg, Result};
+use crate::{ArgError, ParseFArg, Result, parsef_part, reader::Reader};
 
 /// Trait similar to [`crate::FromArg`]. Difference is that this may parse only
 /// part of the input.
@@ -304,9 +304,5 @@ fn float_final_parse<F: Float>(
         frac.as_bytes().iter(),
         exp,
     );
-    if neg {
-        -r
-    } else {
-        r
-    }
+    if neg { -r } else { r }
 }

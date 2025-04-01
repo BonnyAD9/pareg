@@ -11,10 +11,10 @@ pub struct InRangeI<
 >(pub T);
 
 impl<
-        T: TryInto<i128> + Copy + for<'a> FromArg<'a>,
-        const START: i128,
-        const END: i128,
-    > FromStr for InRangeI<T, START, END>
+    T: TryInto<i128> + Copy + for<'a> FromArg<'a>,
+    const START: i128,
+    const END: i128,
+> FromStr for InRangeI<T, START, END>
 {
     type Err = ArgError;
 
@@ -44,9 +44,9 @@ impl<
 }
 
 impl<
-        T: TryInto<i128> + Copy + for<'a> FromArg<'a>,
-        const START: i128,
-        const END: i128,
-    > FromArgStr for InRangeI<T, START, END>
+    T: TryInto<i128> + Copy + for<'a> FromArg<'a>,
+    const START: i128,
+    const END: i128,
+> FromArgStr for InRangeI<T, START, END>
 {
 }

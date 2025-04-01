@@ -1,8 +1,8 @@
 use crate::{
+    ArgErrCtx, ColorMode, FromRead, Reader,
     arg_into::ArgInto,
     err::{ArgError, Result},
     from_arg::FromArg,
-    ArgErrCtx, ColorMode, FromRead, Reader,
 };
 
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is

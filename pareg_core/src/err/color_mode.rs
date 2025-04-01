@@ -1,4 +1,4 @@
-use std::io::{stderr, stdout, IsTerminal};
+use std::io::{IsTerminal, stderr, stdout};
 
 #[cfg(any(
     all(

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse::Parser, parse2, punctuated::Punctuated, Expr, Ident, LitStr, Token,
+    Expr, Ident, LitStr, Token, parse::Parser, parse2, punctuated::Punctuated,
 };
 
 pub fn proc_parsef(args: TokenStream, part: bool) -> TokenStream {

@@ -1,6 +1,6 @@
 use proc_macro2::{Literal, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{punctuated::Punctuated, Data, DeriveInput, LitStr, Meta, Token};
+use quote::{ToTokens, quote};
+use syn::{Data, DeriveInput, LitStr, Meta, Token, punctuated::Punctuated};
 
 /// Implementation of the derive proc macro for [`crate::FromArg`]
 pub fn derive_from_arg(item: TokenStream) -> TokenStream {
