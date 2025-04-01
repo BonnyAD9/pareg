@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.9.1
 ### Fixes
 - Fix typo in error message.
 
