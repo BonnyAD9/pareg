@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use pareg::{check, parsef, parsef_part, ArgError, FromArg};
+use pareg::{ArgError, FromArg, check, parsef, parsef_part};
 
 #[test]
 pub fn test_from_arg() {

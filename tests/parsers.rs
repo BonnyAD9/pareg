@@ -1,4 +1,4 @@
-use pareg::{arg_list, parsef_part, ArgError, FromRead, Result};
+use pareg::{ArgError, FromRead, Result, arg_list, parsef_part};
 
 #[test]
 fn test_arg_list() {

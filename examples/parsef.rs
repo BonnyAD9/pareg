@@ -1,5 +1,5 @@
 use std::{
-    io::{stdin, Read},
+    io::{Read, stdin},
     process::ExitCode,
 };
 

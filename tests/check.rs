@@ -1,6 +1,6 @@
 use pareg::{
-    check::{self, CheckRef},
     FromArg, Reader, Result, SetFromRead,
+    check::{self, CheckRef},
 };
 
 #[test]

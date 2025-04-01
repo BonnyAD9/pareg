@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use pareg::{key_val_arg, starts_any, FromArg, Pareg, Result};
+use pareg::{FromArg, Pareg, Result, key_val_arg, starts_any};
 
 fn main() -> ExitCode {
     match start() {

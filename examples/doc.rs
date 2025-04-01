@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use pareg::{starts_any, FromArg, Pareg, Result};
+use pareg::{FromArg, Pareg, Result, starts_any};
 
 // You can define enums, and have them automaticaly derive FromArg where each
 // enum variant will be parsed from case insensitive strings of the same name

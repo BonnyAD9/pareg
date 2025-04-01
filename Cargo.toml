@@ -1,7 +1,7 @@
 [package]
 name = "pareg"
 version = "0.9.0"
-edition = "2021"
+edition = "2024"
 license-file = "LICENSE"
 description = "Rust library with useful tools for command line argument parsing"
 homepage = "https://github.com/BonnyAD9/pareg"
