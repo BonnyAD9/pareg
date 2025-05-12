@@ -1,13 +1,13 @@
 use std::{borrow::Cow, io::Read};
 
+use reader_source::ReaderSource;
+
 use crate::{ArgError, FromRead, Result};
 
-enum ReaderSource<'a> {
-    Io(Box<dyn Read + 'a>),
-    Str(Cow<'a, str>),
-    Iter(Box<dyn Iterator<Item = char> + 'a>),
-    IterErr(Box<dyn Iterator<Item = Result<char>> + 'a>),
-}
+mod reader_source;
+mod reader_chars;
+
+pub use self::reader_chars::*;
 
 /// Struct that allows formated reading.
 pub struct Reader<'a> {
@@ -15,9 +15,6 @@ pub struct Reader<'a> {
     peek: Option<char>,
     pos: usize,
 }
-
-/// Char iterator over reader.
-pub struct ReaderChars<'r, 'a>(&'r mut Reader<'a>);
 
 impl<'a> Reader<'a> {
     /// Read at most `max` chars to the given string.
@@ -190,26 +187,6 @@ impl<'a> Reader<'a> {
             source,
             pos: 0,
             peek: None,
-        }
-    }
-}
-
-impl Iterator for ReaderChars<'_, '_> {
-    type Item = Result<char>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().transpose()
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        match &self.0.source {
-            ReaderSource::Io(_) => (self.0.peek.is_some() as usize, None),
-            ReaderSource::Str(s) => (
-                self.0.peek.is_some() as usize + (s.len() - self.0.pos) / 4,
-                Some(self.0.peek.is_some() as usize + s.len() - self.0.pos),
-            ),
-            ReaderSource::Iter(i) => i.size_hint(),
-            ReaderSource::IterErr(i) => i.size_hint(),
         }
     }
 }
