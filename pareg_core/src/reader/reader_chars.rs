@@ -2,10 +2,8 @@ use crate::Result;
 
 use super::{Reader, ReaderSource};
 
-
 /// Char iterator over reader.
 pub struct ReaderChars<'r, 'a>(pub(crate) &'r mut Reader<'a>);
-
 
 impl Iterator for ReaderChars<'_, '_> {
     type Item = Result<char>;
@@ -16,13 +14,25 @@ impl Iterator for ReaderChars<'_, '_> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         match &self.0.source {
-            ReaderSource::Io(_) => (self.0.peek.is_some() as usize, None),
+            ReaderSource::Io(_) => (self.0.undone.len(), None),
             ReaderSource::Str(s) => (
-                self.0.peek.is_some() as usize + (s.len() - self.0.pos) / 4,
-                Some(self.0.peek.is_some() as usize + s.len() - self.0.pos),
+                self.0.undone.len() + (s.len() - self.0.pos) / 4,
+                Some(self.0.undone.len() + s.len() - self.0.pos),
             ),
-            ReaderSource::Iter(i) => i.size_hint(),
-            ReaderSource::IterErr(i) => i.size_hint(),
+            ReaderSource::Iter(i) => {
+                let (min, max) = i.size_hint();
+                (
+                    min + self.0.undone.len(),
+                    max.map(|m| m + self.0.undone.len()),
+                )
+            }
+            ReaderSource::IterErr(i) => {
+                let (min, max) = i.size_hint();
+                (
+                    min + self.0.undone.len(),
+                    max.map(|m| m + self.0.undone.len()),
+                )
+            }
         }
     }
 }

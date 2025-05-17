@@ -2,17 +2,25 @@ use std::{borrow::Cow, io::Read};
 
 use reader_source::ReaderSource;
 
-use crate::{ArgError, FromRead, Result};
+use crate::{ArgError, Result};
 
-mod reader_source;
+mod from_read;
+mod parsed_fmt;
+mod read_fmt;
 mod reader_chars;
+mod reader_source;
+mod set_from_read;
+mod trim_side;
 
-pub use self::reader_chars::*;
+pub use self::{
+    from_read::*, parsed_fmt::*, read_fmt::*, reader_chars::*,
+    set_from_read::*, trim_side::*,
+};
 
 /// Struct that allows formated reading.
 pub struct Reader<'a> {
     source: ReaderSource<'a>,
-    peek: Option<char>,
+    undone: Vec<char>,
     pos: usize,
 }
 
@@ -20,7 +28,7 @@ impl<'a> Reader<'a> {
     /// Read at most `max` chars to the given string.
     pub fn read_to(&mut self, s: &mut String, max: usize) -> Result<()> {
         s.reserve(self.bytes_size_hint().min(max));
-        let target = s.len() + max;
+        let target = s.len().saturating_add(max);
         for c in self.chars() {
             s.push(c?);
             if s.len() == target {
@@ -40,25 +48,21 @@ impl<'a> Reader<'a> {
     }
 
     /// Get the position of the last returned char.
-    pub fn pos(&self) -> Option<usize> {
-        if self.pos == 0 {
-            None
-        } else {
-            Some(self.pos - 1)
-        }
+    pub fn pos(&self) -> usize {
+        self.pos
     }
 
+    /// Gets the low estimate of the remaining bytes.
     pub fn bytes_size_hint(&self) -> usize {
         match &self.source {
-            ReaderSource::Io(_) => {
-                self.peek.map(|a| a.len_utf8()).unwrap_or_default()
-            }
-            ReaderSource::Str(s) => s.len() - self.pos,
-            ReaderSource::Iter(i) => i.size_hint().0,
-            ReaderSource::IterErr(i) => i.size_hint().0,
+            ReaderSource::Io(_) => self.undone.len(),
+            ReaderSource::Str(s) => s.len() - self.pos + self.undone.len(),
+            ReaderSource::Iter(i) => i.size_hint().0 + self.undone.len(),
+            ReaderSource::IterErr(i) => i.size_hint().0 + self.undone.len(),
         }
     }
 
+    /// Adds relevant information to the given error.
     pub fn map_err(&self, e: ArgError) -> ArgError {
         match &self.source {
             ReaderSource::Str(s) => e
@@ -68,21 +72,52 @@ impl<'a> Reader<'a> {
         }
     }
 
+    /// Creates parse error with the given message.
     pub fn err_parse(&self, msg: impl Into<Cow<'static, str>>) -> ArgError {
         self.map_err(ArgError::parse_msg(msg, String::new()))
     }
 
+    /// Creates value error with the given message.
     pub fn err_value(&self, msg: impl Into<Cow<'static, str>>) -> ArgError {
         self.map_err(ArgError::value_msg(msg, String::new()))
     }
 
-    pub fn peek(&mut self) -> Result<Option<char>> {
-        if let Some(c) = self.peek {
-            Ok(Some(c))
-        } else {
-            self.peek = self.next()?;
-            Ok(self.peek)
+    /// Adds relevant information to the given error. The span will start
+    /// at the next character.
+    pub fn map_err_peek(&self, e: ArgError) -> ArgError {
+        match &self.source {
+            ReaderSource::Str(s) => e
+                .shift_span(self.pos, s.to_string())
+                .spanned(self.pos..self.pos),
+            _ => e,
         }
+    }
+
+    /// Creates parse error with the given message. Span will start at the next
+    /// character.
+    pub fn err_parse_peek(
+        &self,
+        msg: impl Into<Cow<'static, str>>,
+    ) -> ArgError {
+        self.map_err_peek(ArgError::parse_msg(msg, String::new()))
+    }
+
+    /// Creates value error with the given message. Span will start at the next
+    /// character.
+    pub fn err_value_peek(
+        &self,
+        msg: impl Into<Cow<'static, str>>,
+    ) -> ArgError {
+        self.map_err(ArgError::value_msg(msg, String::new()))
+    }
+
+    /// Peek at the next character.
+    pub fn peek(&mut self) -> Result<Option<char>> {
+        if self.undone.is_empty() {
+            let n = self.next_inner()?;
+            self.undone.extend(n);
+        }
+        Ok(self.undone.last().copied())
     }
 
     /// Match the given string to the output. If it doesn't match, return
@@ -147,25 +182,16 @@ impl<'a> Reader<'a> {
     /// Gets the next character.
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<Option<char>> {
-        if let Some(r) = self.peek {
-            self.peek = None;
-            return Ok(Some(r));
-        }
-
-        let r = match &mut self.source {
-            ReaderSource::Io(io) => read_char(io.as_mut()),
-            ReaderSource::Str(s) => Ok(s[self.pos..].chars().next()),
-            ReaderSource::Iter(i) => Ok(i.next()),
-            ReaderSource::IterErr(i) => i.next().transpose(),
+        let c = if let Some(c) = self.undone.pop() {
+            c
+        } else if let Some(c) = self.next_inner()? {
+            c
+        } else {
+            return Ok(None);
         };
 
-        match r {
-            Ok(Some(r)) => {
-                self.pos += r.len_utf8();
-                Ok(Some(r))
-            }
-            e => self.res(e),
-        }
+        self.pos += c.len_utf8();
+        Ok(Some(c))
     }
 
     /// Gets iterator over chars.
@@ -174,8 +200,71 @@ impl<'a> Reader<'a> {
     }
 
     /// Parses the next value.
-    pub fn parse<T: FromRead>(&mut self) -> Result<(T, Option<ArgError>)> {
-        T::from_read(self)
+    pub fn parse<'f, T: FromRead>(
+        &mut self,
+        fmt: &'f ReadFmt<'f>,
+    ) -> Result<(T, Option<ArgError>)> {
+        T::from_read(self, fmt)
+    }
+
+    /// Trims characters from the left side according to the given format.
+    pub fn trim_left(&mut self, fmt: &ReadFmt) -> Result<()> {
+        let Some((t, chr)) = fmt.trim() else {
+            return Ok(());
+        };
+
+        if !t.left() {
+            return Ok(());
+        }
+
+        if let Some(c) = chr {
+            self.skip_while(|a| a == c)
+        } else {
+            self.skip_while(|a| a.is_ascii_whitespace())
+        }
+    }
+
+    /// Trims characters from the right side according to the given format.
+    pub fn trim_right(&mut self, fmt: &ReadFmt) -> Result<()> {
+        let Some((t, chr)) = fmt.trim() else {
+            return Ok(());
+        };
+
+        if !t.right() {
+            return Ok(());
+        }
+
+        if let Some(c) = chr {
+            self.skip_while(|a| a == c)
+        } else {
+            self.skip_while(|a| a.is_ascii_whitespace())
+        }
+    }
+
+    /// Prepends the given character to the reader.
+    pub fn unnext(&mut self, c: char) {
+        self.pos = self.pos.saturating_sub(c.len_utf8());
+        self.undone.push(c);
+    }
+
+    /// Prepends the given characters to the reader.
+    pub fn prepend<I: IntoIterator<Item = char>>(&mut self, s: I)
+    where
+        I::IntoIter: DoubleEndedIterator,
+    {
+        for c in s.into_iter().rev() {
+            self.unnext(c);
+        }
+    }
+
+    fn next_inner(&mut self) -> Result<Option<char>> {
+        let r = match &mut self.source {
+            ReaderSource::Io(io) => read_char(io.as_mut()),
+            ReaderSource::Str(s) => Ok(s[self.pos..].chars().next()),
+            ReaderSource::Iter(i) => Ok(i.next()),
+            ReaderSource::IterErr(i) => i.next().transpose(),
+        };
+        self.res(r)
     }
 
     fn res<T>(&self, res: Result<T>) -> Result<T> {
@@ -186,7 +275,7 @@ impl<'a> Reader<'a> {
         Self {
             source,
             pos: 0,
-            peek: None,
+            undone: vec![],
         }
     }
 }

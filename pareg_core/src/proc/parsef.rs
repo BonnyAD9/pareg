@@ -50,12 +50,35 @@ pub fn proc_parsef(args: TokenStream, part: bool) -> TokenStream {
             panic!("Missing closing '}}'");
         };
 
-        if pos == 0 {
-            let arg = input.next();
-            args.extend(quote! { pareg::ParseFArg::Arg(#arg), });
+        let inline = &p[..pos];
+        let (id, fmt) = if let Some((i, f)) = inline.split_once(':') {
+            (i.trim(), f)
         } else {
-            let id = Ident::new(&p[..pos], span);
-            args.extend(quote! { pareg::ParseFArg::Arg(&mut #id), });
+            (inline.trim(), "")
+        };
+
+        if id.is_empty() {
+            let arg = input.next();
+            if let Some(fid) = fmt.strip_prefix('$') {
+                let fid = Ident::new(fid, span);
+                args.extend(quote! { pareg::ParseFArg::Arg(#arg, &#fid), });
+            } else {
+                args.extend(
+                    quote! { pareg::ParseFArg::Arg(#arg, &#fmt.into()), },
+                );
+            }
+        } else {
+            let id = Ident::new(id, span);
+            if let Some(fid) = fmt.strip_prefix('$') {
+                let fid = Ident::new(fid, span);
+                args.extend(
+                    quote! { pareg::ParseFArg::Arg(&mut #id, &#fid), },
+                );
+            } else {
+                args.extend(
+                    quote! { pareg::ParseFArg::Arg(&mut #id, &#fmt.into()), },
+                );
+            }
         }
 
         p = &p[pos + 1..];

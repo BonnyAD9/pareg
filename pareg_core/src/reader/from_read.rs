@@ -8,6 +8,8 @@ use minimal_lexical::Float;
 
 use crate::{ArgError, ParseFArg, Result, parsef_part, reader::Reader};
 
+use super::ReadFmt;
+
 /// Trait similar to [`crate::FromArg`]. Difference is that this may parse only
 /// part of the input.
 pub trait FromRead: Sized {
@@ -16,22 +18,51 @@ pub trait FromRead: Sized {
     /// occur if more of the input was expected to be parsed. If this returns
     /// successfully and there is no error, it usually means that all of the
     /// input from reader was consumed.
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)>;
+    ///
+    /// Fmt specifies format of the string used to parse the data.
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)>;
+
+    /// Parses data from the reader and sets the current value.
+    fn set_from_read<'a>(
+        &mut self,
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<Option<ArgError>> {
+        let err;
+        (*self, err) = Self::from_read(r, fmt)?;
+        Ok(err)
+    }
 }
 
 macro_rules! impl_from_read_int {
     ($($(-$it:ident)? $($ut:ident)?),* $(,)?) => {
         $(impl FromRead for $($it)? $($ut)? {
-            fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
-                const RADIX: u32 = 10;
+            fn from_read(
+                r: &mut Reader,
+                fmt: &ReadFmt
+            ) -> Result<(Self, Option<ArgError>)> {
+                let radix = fmt.base().unwrap_or(10);
                 let mut res: Self = 0;
                 let start_pos = r.pos();
+                let (min_len, max_len) =
+                    fmt.length_range().unwrap_or((0, usize::MAX));
+                r.trim_left(fmt)?;
 
                 macro_rules! unwrap_or_exit {
                     ($v:expr, $msg:literal) => {
                         match $v {
                             Some(v) => v,
-                            None => return Ok((res, Some(r.err_parse($msg)))),
+                            None => return
+                                if start_pos == r.pos()
+                                    || r.pos() - start_pos < min_len
+                                {
+                                    Err(r.err_parse_peek($msg))
+                                } else {
+                                    Ok((res, Some(r.err_parse_peek($msg))))
+                                },
                         }
                     };
                 }
@@ -40,7 +71,14 @@ macro_rules! impl_from_read_int {
                     ($v:expr) => {
                         match $v {
                             Ok(r) => r,
-                            Err(e) => return Ok((res, Some(e))),
+                            Err(e) => return
+                                if start_pos == r.pos()
+                                    || r.pos() - start_pos < min_len
+                                {
+                                    Err(e)
+                                } else {
+                                    Ok((res, Some(e)))
+                                },
                         }
                     };
                 }
@@ -49,17 +87,20 @@ macro_rules! impl_from_read_int {
                     ($op:ident, $ignore:ident) => {
 
                         while let Some(c) = r.peek().transpose() {
-                            let r2 = res.checked_mul(RADIX as Self);
+                            if r.pos() - start_pos >= max_len {
+                                break;
+                            }
+                            let r2 = res.checked_mul(radix as Self);
                             let d = pass_or_exit!(c);
                             let d = unwrap_or_exit!(
-                                d.to_digit(RADIX),
+                                d.to_digit(radix),
                                 "Invalid digit in string."
                             );
                             res = pass_or_exit!(
                                 r2.and_then(|r| r.$op(d as Self)).ok_or_else(||
                                     r.err_parse(
                                         "Number doesn't fit the target type."
-                                    ).span_start(start_pos.unwrap_or_default())
+                                    ).span_start(start_pos)
                                         .hint(format!(
                                             "Value must be in range from `{}` \
                                             to `{}`.",
@@ -85,7 +126,11 @@ macro_rules! impl_from_read_int {
                 $(loop_signed!(checked_add, $ut);)?
 
                 if start_pos == r.pos() {
-                    Err(r.err_parse("Expected at least one digit."))
+                    Err(r.err_parse_peek("Expected at least one digit."))
+                } else if r.pos() - start_pos < min_len {
+                    r.err_parse_peek(
+                        format!("Expected at least `{min_len}` digits.")
+                    ).err()
                 } else {
                     Ok((res, None))
                 }
@@ -94,12 +139,17 @@ macro_rules! impl_from_read_int {
     };
 }
 
-impl_from_read_int!(u8, u16, u32, u64, usize, -i8, -i16, -i32, -i64, -isize);
+impl_from_read_int!(
+    u8, u16, u32, u64, u128, usize, -i8, -i16, -i32, -i64, -isize, -i128
+);
 
 macro_rules! impl_from_read_float {
     ($($t:ident),* $(,)?) => {
         $(impl FromRead for $t {
-            fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+            fn from_read(
+                r: &mut Reader,
+                _fmt: &ReadFmt
+            ) -> Result<(Self, Option<ArgError>)> {
                 float_from_read(r)
             }
         })*
@@ -121,7 +171,7 @@ macro_rules! impl_from_str_with_read {
 
             fn from_str(s: &str) -> $crate::Result<Self> {
                 use $crate::FromRead;
-                let (val, err) = Self::from_read(&mut s.into())?;
+                let (val, err) = Self::from_read(&mut s.into(), &"".into())?;
                 if let Some(err) = err {
                     Err(err)
                 } else {
@@ -146,7 +196,7 @@ macro_rules! impl_from_arg_str_with_read {
 
             fn from_str(s: &str) -> $crate::Result<Self> {
                 use $crate::FromRead;
-                let (val, err) = Self::from_read(&mut s.into())?;
+                let (val, err) = Self::from_read(&mut s.into(), &"".into())?;
                 if let Some(err) = err {
                     Err(err)
                 } else {
@@ -163,15 +213,20 @@ macro_rules! impl_from_arg_str_with_read {
 }
 
 impl FromRead for bool {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
-        let (c, _) = char::from_read(r)?;
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
+        let (c, _) = char::from_read(r, fmt)?;
         match c {
             't' => {
                 r.expect("rue")?;
+                r.trim_right(fmt)?;
                 Ok((true, None))
             }
             'f' => {
                 r.expect("alse")?;
+                r.trim_right(fmt)?;
                 Ok((false, None))
             }
             c => Err(r.err_parse(format!(
@@ -182,51 +237,100 @@ impl FromRead for bool {
 }
 
 impl FromRead for char {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+    fn from_read(
+        r: &mut Reader,
+        fmt: &ReadFmt,
+    ) -> Result<(Self, Option<ArgError>)> {
+        r.trim_left(fmt)?;
         let Some(c) = r.next()? else {
             return Err(r.err_parse("Expected character."));
         };
+        r.trim_right(fmt)?;
         Ok((c, None))
     }
 }
 
 impl FromRead for String {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
         let mut res = String::new();
-        r.read_all(&mut res)?;
-        Ok((res, None))
+        let err = res.set_from_read(r, fmt)?;
+        Ok((res, err))
+    }
+
+    fn set_from_read<'a>(
+        &mut self,
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<Option<ArgError>> {
+        r.trim_left(fmt)?;
+        let (min, max) = fmt.length_range().unwrap_or((0, usize::MAX));
+        self.clear();
+        r.read_to(self, min)?;
+        if self.len() < min {
+            return r
+                .err_parse(format!(
+                    "Expected at least `{min}` characters but there were only \
+                `{}` characters.",
+                    self.len()
+                ))
+                .err();
+        }
+        r.read_to(self, max - min)?;
+        if let Some((t, ch)) = fmt.trim() {
+            if t.right() {
+                let s = if let Some(c) = ch {
+                    self[min..].trim_end_matches(c)
+                } else {
+                    self[min..].trim_ascii_end()
+                };
+                self.replace_range(min + s.len().., "");
+            }
+        }
+
+        Ok(Some(r.err_parse(format!(
+            "String is too long. Expected at most `{max}` characters."
+        ))))
     }
 }
 
 impl FromRead for PathBuf {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
-        let mut res = String::new();
-        r.read_all(&mut res)?;
-        Ok((res.into(), None))
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
+        Ok((String::from_read(r, fmt)?.0.into(), None))
     }
 }
 
 impl FromRead for OsString {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
-        let mut res = String::new();
-        r.read_all(&mut res)?;
-        Ok((res.into(), None))
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
+        Ok((String::from_read(r, fmt)?.0.into(), None))
     }
 }
 
 impl FromRead for Ipv4Addr {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
         let mut c: (u8, u8, u8, u8) = Default::default();
+        let fmt2 = fmt.keep_base();
         let r = parsef_part(
             r,
             [
-                ParseFArg::Arg(&mut c.0),
+                ParseFArg::Arg(&mut c.0, &fmt2),
                 ParseFArg::Str(".".into()),
-                ParseFArg::Arg(&mut c.1),
+                ParseFArg::Arg(&mut c.1, &fmt2),
                 ParseFArg::Str(".".into()),
-                ParseFArg::Arg(&mut c.2),
+                ParseFArg::Arg(&mut c.2, &fmt2),
                 ParseFArg::Str(".".into()),
-                ParseFArg::Arg(&mut c.3),
+                ParseFArg::Arg(&mut c.3, &fmt2),
             ],
         )?;
         Ok((Ipv4Addr::new(c.0, c.1, c.2, c.3), r))
@@ -234,15 +338,19 @@ impl FromRead for Ipv4Addr {
 }
 
 impl FromRead for SocketAddrV4 {
-    fn from_read(r: &mut Reader) -> Result<(Self, Option<ArgError>)> {
+    fn from_read<'a>(
+        r: &mut Reader,
+        fmt: &'a ReadFmt<'a>,
+    ) -> Result<(Self, Option<ArgError>)> {
         let mut adr: Ipv4Addr = Ipv4Addr::LOCALHOST;
         let mut port: u16 = 0;
+        let fmt = fmt.keep_base();
         let r = parsef_part(
             r,
             [
-                ParseFArg::Arg(&mut adr),
+                ParseFArg::Arg(&mut adr, &fmt),
                 ParseFArg::Str(":".into()),
-                ParseFArg::Arg(&mut port),
+                ParseFArg::Arg(&mut port, &fmt),
             ],
         )?;
         Ok((SocketAddrV4::new(adr, port), r))
@@ -276,14 +384,14 @@ fn float_from_read<F: Float>(r: &mut Reader) -> Result<(F, Option<ArgError>)> {
         return Ok((
             float_final_parse(neg, &frac, dot, 0),
             r.peek()?.map(|c| {
-                r.err_parse(format!(
+                r.err_parse_peek(format!(
                     "Invalid char `{c}`. Expected digit, `e` or `E`"
                 ))
             }),
         ));
     }
 
-    let (exp, err) = r.parse::<i32>()?;
+    let (exp, err) = r.parse::<i32>(&"".into())?;
     Ok((float_final_parse(neg, &frac, dot, exp), err))
 }
 

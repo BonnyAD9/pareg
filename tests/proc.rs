@@ -95,3 +95,46 @@ pub fn test_parsef() {
     assert_eq!(a.1, 1.5E3);
     assert_eq!(a.2, -0.2);
 }
+
+#[test]
+pub fn test_format() {
+    let mut num: u32 = 0;
+    let res = parsef!(&mut "fea".into(), "{num:X}");
+
+    assert!(res.is_ok());
+    assert_eq!(num, 0xfea);
+
+    let res = parsef_part!(&mut "123".into(), "{num:2}");
+
+    assert!(res.is_ok());
+    assert_eq!(num, 12);
+
+    let res = parsef!(&mut " 123".into(), "{num}");
+    assert!(res.is_err());
+
+    let res = parsef!(&mut " 123".into(), "{num:>}");
+
+    assert!(res.is_ok());
+    assert_eq!(num, 123);
+
+    let mut s = String::new();
+    let res = parsef!(&mut "  ab    ".into(), "{s:^2..4}");
+
+    assert!(res.is_ok());
+    assert_eq!(s, "ab");
+
+    let res = parsef!(&mut "  ab c  ".into(), "{s:^2..4}");
+
+    assert!(res.is_ok());
+    assert_eq!(s, "ab c");
+
+    let res = parsef!(&mut "  ab    ".into(), "{s:^4}");
+
+    assert!(res.is_ok());
+    assert_eq!(s, "ab  ");
+
+    let res = parsef!(&mut "  ab    ".into(), "{s:^3..4}");
+
+    assert!(res.is_ok());
+    assert_eq!(s, "ab ");
+}

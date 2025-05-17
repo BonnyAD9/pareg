@@ -1,4 +1,4 @@
-use pareg::{ArgError, FromRead, Result, arg_list, parsef_part};
+use pareg::{ArgError, FromRead, ReadFmt, Result, arg_list, parsef_part};
 
 #[test]
 fn test_arg_list() {
@@ -6,11 +6,12 @@ fn test_arg_list() {
     struct Pair(i32, i32);
 
     impl FromRead for Pair {
-        fn from_read(
+        fn from_read<'a>(
             r: &mut pareg::Reader,
+            fmt: &'a ReadFmt<'a>,
         ) -> Result<(Self, Option<ArgError>)> {
             let mut v = Pair::default();
-            let r = parsef_part!(r, "({},{})", &mut v.0, &mut v.1)?;
+            let r = parsef_part!(r, "({:$fmt},{:$fmt})", &mut v.0, &mut v.1)?;
             Ok((v, r))
         }
     }

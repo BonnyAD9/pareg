@@ -372,7 +372,7 @@ pub fn arg_list<T: FromRead>(arg: &str, sep: &str) -> Result<Vec<T>> {
     let mut res = vec![];
     let mut reader: Reader = arg.into();
     loop {
-        let (item, _) = T::from_read(&mut reader)?;
+        let (item, _) = T::from_read(&mut reader, &"".into())?;
         res.push(item);
         if reader.peek()?.is_none() {
             return Ok(res);

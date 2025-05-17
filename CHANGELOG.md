@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## future
+### New features
+- parsef macros now support formats for types.
+- `Reader` new methods for reader:
+    - `map_err_peek`, `err_parse_peek`, `err_value_peek`
+    - `trim_left`, `trim_right`
+    - `unnext`, `prepend`
+
+### Fixes
+- Properly reject empty string as number in parsef macros.
+
+### Breaking changes
+- `FromRead` and `SetFromRead` now also have format argument.
+- `SetFromRead` is now not implemented automatically for all types that
+  implement `FromRead`, but it can be esily implemented with trait
+  `AutoSetFromRead`.
+- Change the way that position is tracked in `Reader`.
+
 ## v0.9.1
 ### Fixes
 - Fix typo in error message.

@@ -3,7 +3,7 @@ use std::{
     ops::{Bound, RangeBounds},
 };
 
-use crate::{Result, SetFromRead};
+use crate::{Result, SetFromRead, reader::ReadFmt};
 
 /// Wraps [`SetFromRead`] implementation of type, so that it chechs that its
 /// value is in the given range.
@@ -16,12 +16,13 @@ pub struct InRange<
 impl<T: SetFromRead + PartialOrd + Display, R: RangeBounds<T>> SetFromRead
     for InRange<'_, T, R>
 {
-    fn set_from_read(
+    fn set_from_read<'a>(
         &mut self,
         r: &mut crate::Reader,
+        fmt: &'a ReadFmt<'a>,
     ) -> Result<Option<crate::ArgError>> {
-        let start_pos = r.pos().unwrap_or_default();
-        match self.0.set_from_read(r) {
+        let start_pos = r.pos();
+        match self.0.set_from_read(r, fmt) {
             Ok(res) => {
                 if self.1.contains(self.0) {
                     Ok(res)

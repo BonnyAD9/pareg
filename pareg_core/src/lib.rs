@@ -3,19 +3,23 @@ mod by_ref;
 pub mod check;
 mod err;
 mod from_arg;
-mod from_read;
 pub(crate) mod impl_all;
 mod pareg_ref;
 mod parsef;
 mod parsers;
 pub mod proc;
-mod reader;
-mod set_from_read;
+pub mod reader;
 mod starts;
 
 pub use crate::{
-    arg_into::*, by_ref::*, err::*, from_arg::*, from_read::*, pareg_ref::*,
-    parsef::*, parsers::*, reader::*, set_from_read::*,
+    arg_into::*,
+    by_ref::*,
+    err::*,
+    from_arg::*,
+    pareg_ref::*,
+    parsef::*,
+    parsers::*,
+    reader::{FromRead, ReadFmt, Reader, ReaderChars, SetFromRead},
 };
 
 use std::{borrow::Cow, cell::Cell, env, ops::Range};

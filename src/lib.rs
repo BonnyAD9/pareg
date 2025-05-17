@@ -145,9 +145,18 @@ mod tests {
     fn from_read_int() {
         use pareg_core::FromRead;
 
-        assert_eq!(u32::from_read(&mut "546".into()).unwrap().0, 546);
-        assert_eq!(i32::from_read(&mut "546".into()).unwrap().0, 546);
-        assert_eq!(i32::from_read(&mut "-546".into()).unwrap().0, -546);
+        assert_eq!(
+            u32::from_read(&mut "546".into(), &"".into()).unwrap().0,
+            546
+        );
+        assert_eq!(
+            i32::from_read(&mut "546".into(), &"".into()).unwrap().0,
+            546
+        );
+        assert_eq!(
+            i32::from_read(&mut "-546".into(), &"".into()).unwrap().0,
+            -546
+        );
     }
 
     #[test]
@@ -155,14 +164,15 @@ mod tests {
         use pareg_core::*;
 
         let mut ip: (u8, u8, u8, u8) = (0, 0, 0, 0);
+        let fmt = "".into();
         let args = [
-            ParseFArg::Arg(&mut ip.0),
+            ParseFArg::Arg(&mut ip.0, &fmt),
             ParseFArg::Str(".".into()),
-            ParseFArg::Arg(&mut ip.1),
+            ParseFArg::Arg(&mut ip.1, &fmt),
             ParseFArg::Str(".".into()),
-            ParseFArg::Arg(&mut ip.2),
+            ParseFArg::Arg(&mut ip.2, &fmt),
             ParseFArg::Str(".".into()),
-            ParseFArg::Arg(&mut ip.3),
+            ParseFArg::Arg(&mut ip.3, &fmt),
         ];
 
         if let Err(e) = parsef(&mut "156.189.254.5".into(), args) {

@@ -40,6 +40,29 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// As arguments, takes reader to parse, format string and than arguments to
 /// which result will be written.
 ///
+/// The format string can contain format strings for the specific arguments
+/// after `:`. The format is `CTS..ER` where:
+/// - `CT` is optional trim mode.
+///     - `C` is optional character to trim. If not present, trim whitespace.
+///     - `T` is the side from which to trim. It is the opposite of alignment
+///       in format functions:
+///         - `<` trim from right.
+///         - `>` trim from left.
+///         - `^` trim from both sides.
+/// - `S..E` is optional length range. The parsing function should use at least
+///   `S` and at most `E` characters.
+///     - `S`, `E` or both may be omited. In that case `S` will be same as `0`
+///       and `E` will be same as max length.
+///     - If only `S` is present (without `..E`), it is same as `S..S`.
+/// - `R` is optional radix for conversion. It may be:
+///     - `D` as decimal.
+///     - `X` as hexadecimal.
+///     - `O` as octal.
+///
+/// Anything else after the format is custom format string for the given type.
+/// Nothing forces the parsing function to follow the standart formatting and
+/// no format is invalid.
+///
 /// # Returns
 /// [`pareg_core::Result<()>`] that indicates success or failure.
 ///
@@ -94,6 +117,25 @@ pub fn parsef(args: TokenStream) -> TokenStream {
 ///
 /// As arguments, takes reader to parse, format string and than arguments to
 /// which result will be written.
+///
+/// The format string can contain format strings for the specific arguments
+/// after `:`. The format is `CTS..ER` where:
+/// - `CT` is optional trim mode.
+///     - `C` is optional character to trim. If not present, trim whitespace.
+///     - `T` is the side from which to trim. It is the opposite of alignment
+///       in format functions:
+///         - `<` trim from right.
+///         - `>` trim from left.
+///         - `^` trim from both sides.
+/// - `S..E` is optional length range. The parsing function should use at least
+///   `S` and at most `E` characters.
+///     - `S`, `E` or both may be omited. In that case `S` will be same as `0`
+///       and `E` will be same as max length.
+///     - If only `S` is present (without `..E`), it is same as `S..S`.
+/// - `R` is optional radix for conversion. It may be:
+///     - `D` as decimal.
+///     - `X` as hexadecimal.
+///     - `O` as octal.
 ///
 /// # Returns
 /// `pareg_core::Result<Option<pareg_core::ArgError>>` that indicates success
