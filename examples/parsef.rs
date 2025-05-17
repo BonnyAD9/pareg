@@ -1,5 +1,4 @@
 use std::{
-    env::args,
     io::{Read, stdin},
     process::ExitCode,
 };
@@ -20,11 +19,11 @@ fn main() -> ExitCode {
 fn start() -> Result<()> {
     let mut ip: (u8, u8, u8, u8) = (0, 0, 0, 0);
     let mut mask = 0_u8;
-    let arg = args().nth(1).expect("argument");
 
+    let input: Box<dyn Read> = Box::new(stdin());
     parsef_part!(
-        &mut arg.into(),
-        "{}.{}.{}.{}/{mask}",
+        &mut input.into(),
+        "{}.{}.{}.{}/{mask}\n",
         &mut ip.0,
         &mut ip.1,
         &mut ip.2,
