@@ -13,10 +13,10 @@ readme = "../README.md"
 [dependencies]
 minimal-lexical = "0.2.1"
 thiserror = "2.0.12"
-proc-macro2 = "1.0.94"
-syn = { version = "2.0.100", features = ["full"]}
+proc-macro2 = "1.0.95"
+syn = { version = "2.0.101", features = ["full"]}
 quote = "1.0.40"
-termal = "2.1.1"
+termal = "3.0.0"
 
 [features]
 default = ["color-auto-stderr"]

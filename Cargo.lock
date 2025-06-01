@@ -33,6 +33,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "minlin"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb89d30f525abd1fb79e894528ef6a597e40ce53bfa69d0235131ea1e09ccb7a"
+
+[[package]]
 name = "pareg"
 version = "0.9.1"
 dependencies = [
@@ -91,9 +97,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31971752e70b8b2686d7e46ec17fb38dad4051d94024c88df49b667caea9c84"
+checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
 dependencies = [
  "unicode-ident",
 ]
@@ -109,9 +115,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.100"
+version = "2.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b09a44accad81e1ba1cd74a32461ba89dee89095ba17b32f5d03683b1b1fc2a0"
+checksum = "8ce2b7fc941b3a24138a0a7cf8e858bfc6a992e7978a068a5c760deb0ed43caf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -120,9 +126,9 @@ dependencies = [
 
 [[package]]
 name = "termal"
-version = "2.1.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efc15286e3ef6702e9be6251a2e7c6688d609653ae9db6e0e2c6c67e4bc92045"
+checksum = "d8d323a9ff2bc62cf65572e0a40da0597e4751c6b99fd39c79705110f6293d7a"
 dependencies = [
  "termal_core",
  "termal_proc",
@@ -130,12 +136,13 @@ dependencies = [
 
 [[package]]
 name = "termal_core"
-version = "2.1.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "509c1d8ca16f1a9922ad7f4b6b30798ae828cb713f263eb9f26f879c34e794e9"
+checksum = "518697f712e25418c3fd8861c20a45cb105e1eb65406698b26046b3ad983f2df"
 dependencies = [
  "base64",
  "litrs",
+ "minlin",
  "place_macro",
  "proc-macro2",
  "thiserror",
@@ -143,9 +150,9 @@ dependencies = [
 
 [[package]]
 name = "termal_proc"
-version = "2.1.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9715c164956ae34a13c7e700177191c619ebff95d6ac9a2a90f33575dc21ace0"
+checksum = "e1de9d713049cdf5f80a6b4392d9875ab50e1a1a95a43df6af58ef7e357b3bb8"
 dependencies = [
  "termal_core",
 ]
