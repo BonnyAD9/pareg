@@ -1,6 +1,6 @@
 [package]
 name = "pareg_core"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2024"
 license-file = "../LICENSE"
 description = "This library contains the implementation for the pareg library."

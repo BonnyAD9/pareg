@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.10.0
 ### New features
 - parsef macros now support formats for types.
 - `Reader` new methods for reader:

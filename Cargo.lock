@@ -40,7 +40,7 @@ checksum = "bb89d30f525abd1fb79e894528ef6a597e40ce53bfa69d0235131ea1e09ccb7a"
 
 [[package]]
 name = "pareg"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "pareg_core",
  "pareg_proc",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_core"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "minimal-lexical",
  "proc-macro2",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_proc"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "pareg_core",
 ]
