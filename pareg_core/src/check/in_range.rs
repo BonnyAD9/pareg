@@ -30,7 +30,7 @@ impl<T: SetFromRead + PartialOrd + Display, R: RangeBounds<T>> SetFromRead
                     let range = print_range_bounds(&self.1);
                     r.err_value(format!("Value must be {range}."))
                         .span_start(start_pos)
-                        .main_msg(format!(
+                        .long_msg(format!(
                             "Invalid value `{}`. Value must be {range}.",
                             self.0,
                         ))

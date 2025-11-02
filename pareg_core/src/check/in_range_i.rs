@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{ArgErrCtx, ArgError, FromArg, FromArgStr};
+use crate::{ArgError, FromArg, FromArgStr};
 
 /// Wraps type, so that its [`FromArg`] implementation also checks that the
 /// given value is in the range given by const parameters.
@@ -20,15 +20,12 @@ impl<
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = || {
-            ArgError::InvalidValue(
-                ArgErrCtx::from_msg(
-                    format!(
-                        "Invalid value. Value must be in range from \
-                        {START} to {END}."
-                    ),
-                    s.to_string(),
-                )
-                .into(),
+            ArgError::invalid_value(
+                format!(
+                    "Invalid value. Value must be in range from \
+                    {START} to {END}."
+                ),
+                s,
             )
         };
         let r = T::from_arg(s)?;

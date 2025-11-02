@@ -1,7 +1,7 @@
 use std::{borrow::Cow, cell::Cell, ops::Range};
 
 use crate::{
-    ArgErrCtx, ArgError, ArgInto, ColorMode, FromArg, FromRead, Result,
+    ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromRead, Result,
     arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
     opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, val_arg,
 };
@@ -265,7 +265,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         if let Some(arg) = self.cur() {
             self.map_res(arg.arg_into())
         } else {
-            Err(ArgError::NoLastArgument)
+            panic!("No last argument to parse.");
         }
     }
 
@@ -465,16 +465,14 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         let arg = self.cur().unwrap_or_default();
         let long_message =
             self.cur().map(|a| format!("Unknown argument `{a}`").into());
-        let ctx = ArgErrCtx {
+        ArgError::new(ArgErrCtx {
             args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.cur.get().saturating_sub(1),
             error_span: 0..arg.len(),
-            message: "Unknown argument.".into(),
-            long_message,
-            hint: None,
-            color: Default::default(),
-        };
-        ArgError::UnknownArgument(ctx.into())
+            inline_msg: Some("Unknown argument.".into()),
+            long_msg: long_message,
+            ..ArgErrCtx::new(ArgErrKind::UnknownArgument)
+        })
     }
 
     /// Creates error that says that the current argument has invalid value.
@@ -487,10 +485,10 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// invalid value.
     #[inline]
     pub fn err_invalid_value(&self, value: String) -> ArgError {
-        self.map_err(ArgError::InvalidValue(Box::new(ArgErrCtx::from_msg(
+        self.map_err(ArgError::invalid_value(
             "Invalid value for argument.",
             value,
-        ))))
+        ))
     }
 
     /// Creates error that says that the given part of the current argument has
@@ -501,10 +499,10 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         if span.start > value.len() || span.end > value.len() {
             span = 0..value.len()
         }
-        self.map_err(ArgError::InvalidValue(Box::new(ArgErrCtx::from_msg(
+        self.map_err(ArgError::invalid_value(
             "Invalid value for argument",
             String::new(),
-        ))))
+        ))
         .spanned(span)
     }
 
@@ -519,16 +517,14 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
             )
             .into()
         });
-        let ctx = ArgErrCtx {
+        ArgError::new(ArgErrCtx {
             args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.args.len().saturating_sub(1),
             error_span: pos..pos,
-            message: "Expected more arguments.".into(),
-            long_message,
-            hint: None,
-            color: ColorMode::default(),
-        };
-        ArgError::NoMoreArguments(ctx.into())
+            inline_msg: Some("Expected more arguments.".into()),
+            long_msg: long_message,
+            ..ArgErrCtx::new(ArgErrKind::NoMoreArguments)
+        })
     }
 
     /// Adds additional information to error so that it has better error

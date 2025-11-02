@@ -16,6 +16,19 @@ members = [
     "pareg_proc",
 ]
 
-[dependencies]
-pareg_core = { version = "0.10.0", path = "pareg_core" }
-pareg_proc = { version = "0.10.0", path = "pareg_proc" }
+[dependencies.pareg_core]
+version = "0.10.0"
+path = "pareg_core"
+default-features = false
+
+[dependencies.pareg_proc]
+version = "0.10.0"
+path = "pareg_proc"
+
+[features]
+default = ["color-auto-stderr"]
+color-auto-stderr = ["pareg_core/color-auto-stderr"]
+color-auto-stdout = ["pareg_core/color-auto-stdout"]
+color-never = ["pareg_core/color-never"]
+color-always = ["pareg_core/color-always"]
+no-anounce = ["pareg_core/no-anounce"]

@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## future
+### New features
+- You can now disable error anouncment with `anounce` in `ArgErrCtx` and
+  `ArgError`. The default value can be changed with the feature `no-anounce`.
+- New constructor `ArgErrCtx::new` to create default error context for the
+  given error kind.
+- The display implementations of `ArgError` and `ArgErrCtx` use the formats
+  `-` and `+` to disable/enable colors.
+- New constructors `ArgError::new`, `ArgError::from_msg` and
+  `ArgError::too_many_arguments`.
+- `ArgError` now implements `From<Box<ArgErrCtx>>`
+- `ArgError::color_mode` now takes `impl Into<ColorMode>`.
+- `ColorMode` now implements `From<bool>`.
+
+### Breaking changes
+- `ArgErrCtx::message` is renamed to `inline_msg`.
+- `ArgErrCtx::long_message` is renamed to `long_msg`.
+- Add new fields to `ArgErrCtx`: `kind` and `anounce`.
+- `ArgErrCtx::inline_msg` is now option.
+- `ArgErrCtx::from_inner` now takes additional first argument `kind`.
+- `ArgErrCtx::from_msg` now takes additional first argument `kind`.
+- Methods on `ArgErrCtx` that previously took argument `self` now take argument
+  `&mut self` and don't return `Self`.
+- `ArgErrCtx::main_msg` is renamed to `ArgErrCtx::long_msg`.
+- `ArgError` is now struct without public fields.
+- `ArgError::parse_msg` is renamed to `ArgError::failed_to_parse`.
+- `ArgError::value_msg` is renamed to `ArgError::invalid_value`.
+- `ArgError::main_msg` is renamed to `ArgError::long_msg`.
+- `ArgError::map_ctx` has been removed.
+- The error `NoLastArgument` has been removed. Pareg will panic in its place as
+  this error condition is certainly bug in code.
+- Method arguments on `ArgError` corresponding to argument with type `String`
+  are now `impl Into<String>`.
+
+### Changes
+- Error kind is now in its separate enum `ArgErrKind`
+
 ## v0.10.0
 ### New features
 - parsef macros now support formats for types.

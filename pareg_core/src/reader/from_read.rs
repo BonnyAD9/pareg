@@ -279,15 +279,15 @@ impl FromRead for String {
                 .err();
         }
         r.read_to(self, max - min)?;
-        if let Some((t, ch)) = fmt.trim() {
-            if t.right() {
-                let s = if let Some(c) = ch {
-                    self[min..].trim_end_matches(c)
-                } else {
-                    self[min..].trim_ascii_end()
-                };
-                self.replace_range(min + s.len().., "");
-            }
+        if let Some((t, ch)) = fmt.trim()
+            && t.right()
+        {
+            let s = if let Some(c) = ch {
+                self[min..].trim_end_matches(c)
+            } else {
+                self[min..].trim_ascii_end()
+            };
+            self.replace_range(min + s.len().., "");
         }
 
         Ok(Some(r.err_parse(format!(

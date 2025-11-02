@@ -11,7 +11,6 @@ use std::{
 };
 
 use crate::{
-    ArgErrCtx,
     err::{ArgError, Result},
     impl_all::impl_all,
 };
@@ -54,9 +53,9 @@ impl_all! { impl<'a> FromArg<'a>:
         #[inline(always)]
         fn from_arg(arg: &'a str) -> Result<Self> {
             Self::from_str(arg).map_err(|e| {
-                ArgError::FailedToParse(Box::new(
-                    ArgErrCtx::from_inner(e, arg.to_string())
-                ))
+                ArgError::failed_to_parse(
+                    e.to_string(), arg
+                )
             })
         }
     }

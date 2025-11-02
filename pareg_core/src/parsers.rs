@@ -1,5 +1,5 @@
 use crate::{
-    ArgErrCtx, ColorMode, FromRead, Reader,
+    ArgErrCtx, ArgErrKind, ColorMode, FromRead, Reader,
     arg_into::ArgInto,
     err::{ArgError, Result},
     from_arg::FromArg,
@@ -71,15 +71,14 @@ where
     V: FromArg<'a>,
 {
     let Some((k, v)) = arg.split_once(sep) else {
-        return Err(ArgError::NoValue(ArgErrCtx {
+        return ArgError::new(ArgErrCtx {
             args: vec![arg.into()],
-            error_idx: 0,
             error_span: 0..arg.len(),
-            message: format!("Missing separator `{sep}`.").into(),
-            long_message: Some(format!("Missing separator `{sep}` for key value pair.").into()),
+            inline_msg: Some(format!("Missing separator `{sep}`.").into()),
+            long_msg: Some(format!("Missing separator `{sep}` for key value pair.").into()),
             hint: Some(format!("Use the separator `{sep}` to split the argument into key and value.").into()),
-            color: ColorMode::default(),
-        }.into()));
+            ..ArgErrCtx::new(ArgErrKind::NoValue)
+        }).err();
     };
 
     Ok((
@@ -109,18 +108,15 @@ pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
     } else if lower == f {
         Ok(false)
     } else {
-        Err(ArgError::FailedToParse(
-            ArgErrCtx {
-                args: vec![arg.into()],
-                error_idx: 0,
-                error_span: 0..arg.len(),
-                message: "Invalid value.".into(),
-                long_message: Some(format!("Invalid value `{arg}`").into()),
-                hint: Some(format!("Expected `{t}` or `{f}`").into()),
-                color: ColorMode::default(),
-            }
-            .into(),
-        ))
+        ArgError::new(ArgErrCtx {
+            args: vec![arg.into()],
+            error_span: 0..arg.len(),
+            inline_msg: Some("Invalid value.".into()),
+            long_msg: Some(format!("Invalid value `{arg}`").into()),
+            hint: Some(format!("Expected `{t}` or `{f}`").into()),
+            ..ArgErrCtx::new(ArgErrKind::FailedToParse)
+        })
+        .err()
     }
 }
 
@@ -159,18 +155,16 @@ pub fn opt_bool_arg(
     } else if lower == n {
         Ok(None)
     } else {
-        Err(ArgError::FailedToParse(
-            ArgErrCtx {
-                args: vec![arg.into()],
-                error_idx: 0,
-                error_span: 0..arg.len(),
-                message: "Invalid value.".into(),
-                long_message: Some(format!("Invalid value `{arg}`").into()),
-                hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
-                color: ColorMode::default(),
-            }
-            .into(),
-        ))
+        ArgError::new(ArgErrCtx {
+            args: vec![arg.into()],
+            error_span: 0..arg.len(),
+            inline_msg: Some("Invalid value.".into()),
+            long_msg: Some(format!("Invalid value `{arg}`").into()),
+            hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),
+            color: ColorMode::default(),
+            ..ArgErrCtx::new(ArgErrKind::FailedToParse)
+        })
+        .err()
     }
 }
 
@@ -291,10 +285,11 @@ pub fn try_set_arg_with<'a, T>(
     f: impl FnOnce(&'a str) -> Result<T>,
 ) -> Result<()> {
     if res.is_some() {
-        Err(ArgError::TooManyArguments(Box::new(ArgErrCtx::from_msg(
+        ArgError::too_many_arguments(
             "Argument sets value that can be set only once.",
-            arg.to_string(),
-        ))))
+            arg,
+        )
+        .err()
     } else {
         *res = Some(f(arg)?);
         Ok(())

@@ -72,17 +72,16 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
                 match arg.trim().to_lowercase().as_str() {
                     #res
                     _ => {
-                        Err(pareg::ArgError::FailedToParse(pareg::ArgErrCtx {
+                        pareg::ArgError::new(pareg::ArgErrCtx {
                             args: vec![arg.into()],
-                            error_idx: 0,
                             error_span: 0..arg.len(),
-                            message: "Unknown option.".into(),
-                            long_message: Some(
+                            inline_msg: Some("Unknown option.".into()),
+                            long_msg: Some(
                                 format!("Unknown option `{arg}`.").into()
                             ),
                             hint: Some(#hint.into()),
-                            color: Default::default(),
-                        }.into()))
+                            ..pareg::ArgErrCtx::new(pareg::ArgErrKind::FailedToParse)
+                        }).err()
                     },
                 }
             }

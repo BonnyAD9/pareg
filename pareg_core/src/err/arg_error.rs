@@ -1,145 +1,139 @@
-use std::{borrow::Cow, ops::Range};
+use std::{borrow::Cow, fmt::Display, ops::Range};
 
-use thiserror::Error;
+use crate::{ArgErrKind, ColorMode};
 
-use super::{ArgErrCtx, ColorMode, Result};
+use super::{ArgErrCtx, Result};
 
 /// Errors thrown when parsing arguments.
-#[derive(Debug, Error)]
-pub enum ArgError {
-    /// There was an unknown argument.
-    #[error("{0}")]
-    UnknownArgument(Box<ArgErrCtx>),
-    /// Expected another argument but there were no more arguments.
-    #[error("{0}")]
-    NoMoreArguments(Box<ArgErrCtx>),
-    /// Failed to parse a string value into a type.
-    #[error("{0}")]
-    FailedToParse(Box<ArgErrCtx>),
-    /// There was no value in a key-value pair.
-    #[error("{0}")]
-    NoValue(Box<ArgErrCtx>),
-    /// The value of argument was invalid.
-    #[error("{0}")]
-    InvalidValue(Box<ArgErrCtx>),
-    /// Argument is specified too many times.
-    #[error("{0}")]
-    TooManyArguments(Box<ArgErrCtx>),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-    /// This error happens when you call any of the `cur_*` methods on
-    /// [`crate::Pareg`]. It is not ment to happen in argument parsing and it
-    /// may indicate that you have bug in your parsing.
-    ///
-    /// Prints the message: `"There was no last argument when it was expected.
-    /// If you see this error, it is propably a bug."`
-    #[error(
-        "There was no last argument when it was expected. \
-        If you see this error, it is propably a bug."
-    )]
-    NoLastArgument,
-}
+#[derive(Debug)]
+pub struct ArgError(Box<ArgErrCtx>);
 
 impl ArgError {
-    /// Shortcut for creating parse error.
-    pub fn parse_msg(msg: impl Into<Cow<'static, str>>, arg: String) -> Self {
-        Self::FailedToParse(Box::new(ArgErrCtx::from_msg(msg, arg)))
+    pub fn new(ctx: ArgErrCtx) -> Self {
+        Self(Box::new(ctx))
     }
 
-    /// Shortcut for creating parse error.
-    pub fn value_msg(msg: impl Into<Cow<'static, str>>, arg: String) -> Self {
-        Self::InvalidValue(Box::new(ArgErrCtx::from_msg(msg, arg)))
+    pub fn from_msg(
+        kind: ArgErrKind,
+        msg: impl Into<Cow<'static, str>>,
+        arg: impl Into<String>,
+    ) -> Self {
+        Self(Box::new(ArgErrCtx::from_msg(kind, msg, arg.into())))
     }
 
-    /// Moves the span in the error message by `cnt` and changes the
-    /// errornous argument to `new_arg`.
-    pub fn shift_span(self, cnt: usize, new_arg: String) -> Self {
-        self.map_ctx(|c| c.shift_span(cnt, new_arg))
+    pub fn span_start(mut self, pos: usize) -> Self {
+        self.0.span_start(pos);
+        self
     }
 
-    /// Add arguments to the error so that it may have better error message.
-    /// Mostly useful internaly in pareg.
-    pub fn add_args(self, args: Vec<String>, idx: usize) -> Self {
-        self.map_ctx(|c| c.add_args(args, idx))
+    pub fn long_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.0.long_msg(msg);
+        self
     }
 
-    /// Adds hint to the error message.
-    pub fn hint(self, hint: impl Into<Cow<'static, str>>) -> Self {
-        self.map_ctx(|c| c.hint(hint))
-    }
-
-    /// Adds span to the error message.
-    pub fn spanned(self, span: Range<usize>) -> Self {
-        self.map_ctx(|c| c.spanned(span))
-    }
-
-    /// Set the span start.
-    pub fn span_start(self, start: usize) -> Self {
-        self.map_ctx(|c| c.span_start(start))
-    }
-
-    /// Sets the short message that is inlined with the code.
-    pub fn inline_msg(self, msg: impl Into<Cow<'static, str>>) -> Self {
-        self.map_ctx(|c| c.inline_msg(msg))
-    }
-
-    /// Sets the primary (non inline) message.
-    pub fn main_msg(self, msg: impl Into<Cow<'static, str>>) -> Self {
-        self.map_ctx(|c| c.main_msg(msg))
-    }
-
-    /// Set the color mode.
-    pub fn color_mode(self, mode: ColorMode) -> Self {
-        self.map_ctx(|c| c.color_mode(mode))
-    }
-
-    /// Disable color.
-    pub fn no_color(self) -> Self {
-        self.map_ctx(|c| c.no_color())
-    }
-
-    /// Sets new argument. If the original argument is substring of this,
-    /// span will be adjusted.
-    pub fn part_of(self, arg: String) -> Self {
-        self.map_ctx(|c| c.part_of(arg))
-    }
-
-    pub fn postfix_of(self, arg: String) -> Self {
-        self.map_ctx(|c| c.postfix_of(arg))
-    }
-
-    /// Helper method to wrap this in error and make it a result.
     pub fn err<T>(self) -> Result<T> {
         Err(self)
     }
 
-    pub fn map_ctx(self, f: impl FnOnce(ArgErrCtx) -> ArgErrCtx) -> Self {
-        match self {
-            ArgError::UnknownArgument(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::UnknownArgument(ctx)
-            }
-            ArgError::NoMoreArguments(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::NoMoreArguments(ctx)
-            }
-            ArgError::FailedToParse(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::FailedToParse(ctx)
-            }
-            ArgError::NoValue(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::NoValue(ctx)
-            }
-            ArgError::InvalidValue(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::InvalidValue(ctx)
-            }
-            ArgError::TooManyArguments(mut ctx) => {
-                *ctx = f(*ctx);
-                ArgError::TooManyArguments(ctx)
-            }
-            v => v,
-        }
+    pub fn hint(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.0.hint(msg);
+        self
+    }
+
+    pub fn shift_span(
+        mut self,
+        cnt: usize,
+        new_arg: impl Into<String>,
+    ) -> Self {
+        self.0.shift_span(cnt, new_arg.into());
+        self
+    }
+
+    pub fn spanned(mut self, span: Range<usize>) -> Self {
+        self.0.spanned(span);
+        self
+    }
+
+    pub fn inline_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
+        self.0.inline_msg(msg);
+        self
+    }
+
+    pub fn add_args(mut self, args: Vec<String>, idx: usize) -> Self {
+        self.0.add_args(args, idx);
+        self
+    }
+
+    pub fn part_of(mut self, arg: impl Into<String>) -> Self {
+        self.0.part_of(arg.into());
+        self
+    }
+
+    pub fn color_mode(mut self, mode: impl Into<ColorMode>) -> Self {
+        self.0.color_mode(mode.into());
+        self
+    }
+
+    pub fn no_color(mut self) -> Self {
+        self.0.no_color();
+        self
+    }
+
+    pub fn postfix_of(mut self, arg: impl Into<String>) -> Self {
+        self.0.postfix_of(arg.into());
+        self
+    }
+
+    pub fn anounce(mut self, anounce: bool) -> Self {
+        self.0.anounce = anounce;
+        self
+    }
+
+    pub fn invalid_value(
+        msg: impl Into<Cow<'static, str>>,
+        arg: impl Into<String>,
+    ) -> Self {
+        Self::from_msg(ArgErrKind::InvalidValue, msg, arg)
+    }
+
+    pub fn failed_to_parse(
+        msg: impl Into<Cow<'static, str>>,
+        arg: impl Into<String>,
+    ) -> Self {
+        Self::from_msg(ArgErrKind::FailedToParse, msg, arg)
+    }
+
+    pub fn too_many_arguments(
+        msg: impl Into<Cow<'static, str>>,
+        arg: impl Into<String>,
+    ) -> Self {
+        Self::from_msg(ArgErrKind::TooManyArguments, msg, arg)
+    }
+}
+
+impl std::error::Error for ArgError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.kind.source()
+    }
+}
+
+impl Display for ArgError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> From<T> for ArgError
+where
+    T: Into<ArgErrKind>,
+{
+    fn from(value: T) -> Self {
+        Self(Box::new(ArgErrCtx::new(value)))
+    }
+}
+
+impl From<Box<ArgErrCtx>> for ArgError {
+    fn from(value: Box<ArgErrCtx>) -> Self {
+        Self(value)
     }
 }

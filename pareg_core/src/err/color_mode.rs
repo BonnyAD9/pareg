@@ -72,3 +72,13 @@ impl ColorMode {
         }
     }
 }
+
+impl From<bool> for ColorMode {
+    fn from(value: bool) -> Self {
+        if value {
+            ColorMode::Always
+        } else {
+            ColorMode::Never
+        }
+    }
+}

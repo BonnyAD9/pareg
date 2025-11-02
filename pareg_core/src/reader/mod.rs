@@ -74,12 +74,12 @@ impl<'a> Reader<'a> {
 
     /// Creates parse error with the given message.
     pub fn err_parse(&self, msg: impl Into<Cow<'static, str>>) -> ArgError {
-        self.map_err(ArgError::parse_msg(msg, String::new()))
+        self.map_err(ArgError::failed_to_parse(msg, String::new()))
     }
 
     /// Creates value error with the given message.
     pub fn err_value(&self, msg: impl Into<Cow<'static, str>>) -> ArgError {
-        self.map_err(ArgError::value_msg(msg, String::new()))
+        self.map_err(ArgError::invalid_value(msg, String::new()))
     }
 
     /// Adds relevant information to the given error. The span will start
@@ -99,7 +99,7 @@ impl<'a> Reader<'a> {
         &self,
         msg: impl Into<Cow<'static, str>>,
     ) -> ArgError {
-        self.map_err_peek(ArgError::parse_msg(msg, String::new()))
+        self.map_err_peek(ArgError::failed_to_parse(msg, String::new()))
     }
 
     /// Creates value error with the given message. Span will start at the next
@@ -108,7 +108,7 @@ impl<'a> Reader<'a> {
         &self,
         msg: impl Into<Cow<'static, str>>,
     ) -> ArgError {
-        self.map_err(ArgError::value_msg(msg, String::new()))
+        self.map_err(ArgError::invalid_value(msg, String::new()))
     }
 
     /// Peek at the next character.
@@ -290,7 +290,7 @@ fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
         return Ok(Some(res as u8 as char));
     }
     if r.read(&mut bts[1..len])? != len - 1 {
-        return Err(ArgError::parse_msg(
+        return Err(ArgError::failed_to_parse(
             "Utf8 expected more bytes.",
             String::new(),
         ));
@@ -301,7 +301,7 @@ fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
         || (bts[0] == 0xE0 && bts[1] < 0xA0)
         || (bts[0] == 0xF4 && bts[1] < 0x90)
     {
-        return Err(ArgError::parse_msg(
+        return Err(ArgError::failed_to_parse(
             "Utf8 overlong encoding.",
             String::new(),
         ));
@@ -309,7 +309,7 @@ fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
 
     for b in &bts[1..len] {
         if (b & 0xC0) != 0x80 {
-            return Err(ArgError::parse_msg(
+            return Err(ArgError::failed_to_parse(
                 "Invalid utf8 trailing byte.",
                 String::new(),
             ));
@@ -319,7 +319,7 @@ fn read_char<R: Read + ?Sized>(r: &mut R) -> Result<Option<char>> {
 
     char::from_u32(res)
         .ok_or_else(|| {
-            ArgError::parse_msg("Invalid utf8 code.", String::new())
+            ArgError::failed_to_parse("Invalid utf8 code.", String::new())
         })
         .map(Some)
 }
@@ -330,7 +330,7 @@ fn utf8_len(b: u8) -> Result<(usize, u32)> {
         2 => Ok((2, (b & 0x1F) as u32)),
         3 => Ok((3, (b & 0x0F) as u32)),
         4 => Ok((4, (b & 0x07) as u32)),
-        _ => Err(ArgError::parse_msg(
+        _ => Err(ArgError::failed_to_parse(
             "Invalid leading utf8 byte.",
             String::new(),
         )),

@@ -1,13 +1,25 @@
-use std::{borrow::Cow, collections::VecDeque, fmt::Display, ops::Range};
+use std::{
+    borrow::Cow, cell::LazyCell, collections::VecDeque, fmt::Display,
+    ops::Range,
+};
 
 use termal::{writemc, writemcln};
 
+use crate::ArgErrKind;
+
 use super::ColorMode;
+
+#[cfg(not(feature = "no-anounce"))]
+pub const DEFAULT_ANOUNCE: bool = true;
+
+#[cfg(feature = "no-anounce")]
+pub const DEFAULT_ANOUNCE: bool = false;
 
 /// Information about error in command line arguments. Implements [`Display`]
 /// with user friendly error messages.
 #[derive(Debug)]
 pub struct ArgErrCtx {
+    pub kind: ArgErrKind,
     /// All command line arguments.
     pub args: Vec<String>,
     /// Index of the errornous argument in [`Self::args`]
@@ -15,128 +27,136 @@ pub struct ArgErrCtx {
     /// Range within the argument that is invalid.
     pub error_span: Range<usize>,
     /// INLINE. Simple error message describing the kind of the problem.
-    pub message: Cow<'static, str>,
+    pub inline_msg: Option<Cow<'static, str>>,
     /// More descriptive message describing the problem in detail.
-    pub long_message: Option<Cow<'static, str>>,
+    pub long_msg: Option<Cow<'static, str>>,
     /// Hint about how to fix the error.
     pub hint: Option<Cow<'static, str>>,
     /// Determines when color should be used.
     pub color: ColorMode,
+    /// Determines whether `error:` is prefixed to the message.
+    pub anounce: bool,
 }
 
 impl ArgErrCtx {
-    pub fn from_inner<E: Display>(e: E, arg: String) -> Self {
-        Self::from_msg(e.to_string(), arg)
+    pub fn new(kind: impl Into<ArgErrKind>) -> Self {
+        Self {
+            kind: kind.into(),
+            args: vec![],
+            error_idx: 0,
+            error_span: 0..0,
+            inline_msg: None,
+            long_msg: None,
+            hint: None,
+            color: ColorMode::default(),
+            anounce: true,
+        }
+    }
+
+    pub fn from_inner<E: Display>(
+        kind: ArgErrKind,
+        e: E,
+        arg: String,
+    ) -> Self {
+        Self::from_msg(kind, e.to_string(), arg)
     }
 
     /// Creates simple error with just message and the errornous argument.
     /// (this is the INLINE message)
     pub fn from_msg(
+        kind: ArgErrKind,
         message: impl Into<Cow<'static, str>>,
         arg: String,
     ) -> Self {
         Self {
             error_span: 0..arg.len(),
             args: vec![arg],
-            error_idx: 0,
-            long_message: None,
-            message: message.into(),
-            hint: None,
-            color: ColorMode::default(),
+            inline_msg: Some(message.into()),
+            ..Self::new(kind)
         }
     }
 
     /// Moves the span in the error message by `cnt` and changes the
     /// errornous argument to `new_arg`.
-    pub fn shift_span(mut self, cnt: usize, new_arg: String) -> Self {
+    pub fn shift_span(&mut self, cnt: usize, new_arg: String) {
         self.error_span.start += cnt;
         self.error_span.end += cnt;
         self.args[self.error_idx] = new_arg;
-        self
     }
 
     /// Sets new argument. If the original argument is substring of this,
     /// span will be adjusted.
-    pub fn part_of(mut self, arg: String) -> Self {
+    pub fn part_of(&mut self, arg: String) {
         if self.args[self.error_idx].len() == arg.len() {
             self.error_span = 0..arg.len();
             self.args[self.error_idx] = arg;
-            return self;
+            return;
         }
         if let Some(shift) = arg.find(&self.args[self.error_idx]) {
             self.error_span.start += shift;
             self.error_span.end += shift;
         }
         self.args[self.error_idx] = arg;
-        self
     }
 
     /// Add arguments to the error so that it may have better error message.
     /// Mostly useful internaly in pareg.
-    pub fn add_args(mut self, args: Vec<String>, idx: usize) -> Self {
-        if self.args[self.error_idx].len() != args[idx].len() {
-            if let Some(shift) = args[idx].find(&self.args[self.error_idx]) {
-                self.error_span.start += shift;
-                self.error_span.end += shift;
-            }
+    pub fn add_args(&mut self, args: Vec<String>, idx: usize) {
+        if self.args[self.error_idx].len() != args[idx].len()
+            && let Some(shift) = args[idx].find(&self.args[self.error_idx])
+        {
+            self.error_span.start += shift;
+            self.error_span.end += shift;
         }
         self.args = args;
         self.error_idx = idx;
-        self
     }
 
     /// Adds hint to the error message.
-    pub fn hint(mut self, hint: impl Into<Cow<'static, str>>) -> Self {
+    pub fn hint(&mut self, hint: impl Into<Cow<'static, str>>) {
         self.hint = Some(hint.into());
-        self
     }
 
     /// Adds span to the error message.
-    pub fn spanned(mut self, span: Range<usize>) -> Self {
+    pub fn spanned(&mut self, span: Range<usize>) {
         self.error_span = span;
-        self
     }
 
     /// Sets the start value of the span
-    pub fn span_start(mut self, start: usize) -> Self {
+    pub fn span_start(&mut self, start: usize) {
         self.error_span.start = start.min(self.error_span.end);
-        self
     }
 
     /// Sets the short message that is inlined with the code.
-    pub fn inline_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
-        self.message = msg.into();
-        self
+    pub fn inline_msg(&mut self, msg: impl Into<Cow<'static, str>>) {
+        self.inline_msg = Some(msg.into());
     }
 
     /// Sets the primary (non inline) message.
-    pub fn main_msg(mut self, msg: impl Into<Cow<'static, str>>) -> Self {
-        self.long_message = Some(msg.into());
-        self
+    pub fn long_msg(&mut self, msg: impl Into<Cow<'static, str>>) {
+        self.long_msg = Some(msg.into());
     }
 
     /// Set the color mode.
-    pub fn color_mode(mut self, mode: ColorMode) -> Self {
+    pub fn color_mode(&mut self, mode: ColorMode) {
         self.color = mode;
-        self
     }
 
     /// Disable color.
-    pub fn no_color(self) -> Self {
-        self.color_mode(ColorMode::Never)
+    pub fn no_color(&mut self) {
+        self.color_mode(ColorMode::Never);
     }
 
     /// Changes the current argument to be postfix of this whole argument.
-    pub fn postfix_of(mut self, arg: String) -> Self {
+    pub fn postfix_of(&mut self, arg: String) {
         let al = self.args[self.error_idx].len();
         match al.cmp(&arg.len()) {
             std::cmp::Ordering::Less => self.shift_span(arg.len() - al, arg),
-            std::cmp::Ordering::Equal => self,
+            std::cmp::Ordering::Equal => {}
             std::cmp::Ordering::Greater => {
                 let d = al - arg.len();
                 self.error_span.start += d;
                 self.error_span.end += d;
-                self
             }
         }
     }
@@ -146,11 +166,35 @@ impl Display for ArgErrCtx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         const MAX_WIDTH: usize = 80;
         const WIDTH: usize = MAX_WIDTH - 11;
-        let color = self.color.use_color();
+        let mut color = self.color.use_color();
+        if f.sign_minus() {
+            color = false;
+        }
+        if f.sign_plus() {
+            color = true;
+        }
 
-        let args = vec!["".to_string()];
+        let kind_msg = LazyCell::new(|| self.kind.to_string());
+        let long_message = self
+            .long_msg
+            .as_deref()
+            .or(self.inline_msg.as_deref())
+            .unwrap_or_else(|| &kind_msg);
+
         let args = if self.args.is_empty() {
-            &args
+            if self.anounce {
+                writemcln!(
+                    f,
+                    color,
+                    "{'r}error:{'_ bold} {long_message}{'_}"
+                )?;
+            } else {
+                writemcln!(f, color, "{'bold}{long_message}{'_}")?;
+            }
+            if let Some(hint) = &self.hint {
+                writemcln!(f, color, "{'c}hint:{'_} {hint}")?;
+            }
+            return Ok(());
         } else {
             &self.args
         };
@@ -158,13 +202,16 @@ impl Display for ArgErrCtx {
 
         let lengths: Vec<_> = args.iter().map(|a| a.chars().count()).collect();
 
-        let long_message = self.long_message.as_ref().unwrap_or(&self.message);
+        if self.anounce {
+            writemcln!(
+                f,
+                color,
+                "{'r}argument error:{'_ bold} {long_message}{'_}"
+            )?;
+        } else {
+            writemcln!(f, color, "{'bold}{long_message}{'_}")?;
+        }
 
-        writemcln!(
-            f,
-            color,
-            "{'r}argument error:{'_ bold} {long_message}{'_}"
-        )?;
         writemcln!(
             f,
             color,
@@ -251,7 +298,7 @@ impl Display for ArgErrCtx {
             " {'b}|{: >err_pos$}{'r}{:^>err_len$} {}{'_}",
             ' ',
             '^',
-            self.message
+            self.inline_msg.as_deref().unwrap_or_else(|| &kind_msg)
         )?;
         let Some(hint) = &self.hint else {
             return Ok(());
