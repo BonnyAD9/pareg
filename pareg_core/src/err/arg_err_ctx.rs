@@ -49,7 +49,7 @@ impl ArgErrCtx {
             long_msg: None,
             hint: None,
             color: ColorMode::default(),
-            anounce: true,
+            anounce: DEFAULT_ANOUNCE,
         }
     }
 
