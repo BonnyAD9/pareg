@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## future
+### New features
+- Add `ArgError::map_ctx()`
+
 ## v0.11.1
 ### New features
 - Add `ArgError::kind()`.
