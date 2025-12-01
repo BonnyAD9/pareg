@@ -109,6 +109,10 @@ impl ArgError {
     ) -> Self {
         Self::from_msg(ArgErrKind::TooManyArguments, msg, arg)
     }
+
+    pub fn kind(&self) -> &ArgErrKind {
+        &self.0.kind
+    }
 }
 
 impl std::error::Error for ArgError {

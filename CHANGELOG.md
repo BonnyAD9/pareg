@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.11.1
+### New features
+- Add `ArgError::kind()`.
+
 ## v0.11.0
 ### New features
 - You can now disable error anouncment with `anounce` in `ArgErrCtx` and
