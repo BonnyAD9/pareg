@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.11.0
 ### New features
 - You can now disable error anouncment with `anounce` in `ArgErrCtx` and
   `ArgError`. The default value can be changed with the feature `no-anounce`.
