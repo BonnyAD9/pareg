@@ -113,7 +113,7 @@ impl ArgError {
     pub fn kind(&self) -> &ArgErrKind {
         &self.0.kind
     }
-    
+
     pub fn map_ctx(mut self, f: impl FnOnce(&mut ArgErrCtx)) -> Self {
         f(&mut self.0);
         self
