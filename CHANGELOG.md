@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.11.2
 ### New features
 - Add `ArgError::map_ctx()`
 
