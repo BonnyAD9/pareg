@@ -31,7 +31,10 @@ use proc_macro::TokenStream;
 /// ```
 #[proc_macro_derive(FromArg, attributes(arg))]
 pub fn derive_from_arg(item: TokenStream) -> TokenStream {
-    pareg_core::proc::derive_from_arg(item.into()).into()
+    pareg_core::proc::result_to_token_stream(
+        pareg_core::proc::derive_from_arg(item.into()),
+    )
+    .into()
 }
 
 /// This macro can be tought of as opposite of [`write!`] or as something like

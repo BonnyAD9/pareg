@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## future
+### Breaking changes
+- Derive macro `FromArg` now separates variants with commas instead of `|`.
+
+### New features
+- Derive macro `FromArg` now supports enums with variants containing single
+  unnamed field to be parsed as `val_arg`.
+
 ## v0.11.2
 ### New features
 - Add `ArgError::map_ctx()`

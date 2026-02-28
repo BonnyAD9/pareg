@@ -115,6 +115,35 @@ mod tests {
         Auto,
     }
 
+    #[derive(Debug, FromArg, PartialEq)]
+    #[arg(exact)]
+    enum Event {
+        #[arg("vu", default = 0.025)]
+        VolumeUp(f32),
+        #[arg("vd", default)]
+        VolumeDown(f32),
+        #[arg("x")]
+        Exit,
+    }
+
+    #[test]
+    fn from_arg_derive() {
+        assert!(pareg::parse_arg::<Event>("volumeup=0.5").is_err());
+        assert_eq!(
+            pareg::parse_arg::<Event>("vu=0.5").unwrap(),
+            Event::VolumeUp(0.5)
+        );
+        assert_eq!(
+            pareg::parse_arg::<Event>("vu").unwrap(),
+            Event::VolumeUp(0.025)
+        );
+        assert_eq!(
+            pareg::parse_arg::<Event>("vd").unwrap(),
+            Event::VolumeDown(0.)
+        );
+        assert_eq!(pareg::parse_arg::<Event>("x").unwrap(), Event::Exit,);
+    }
+
     #[test]
     fn arg_iterator() -> Result<()> {
         let args = ["hello", "10", "0.25", "always"];
