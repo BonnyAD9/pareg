@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.12.0
 ### Breaking changes
 - Derive macro `FromArg` now separates variants with commas instead of `|`.
 
