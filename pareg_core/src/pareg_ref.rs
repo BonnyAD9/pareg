@@ -1,8 +1,8 @@
 use std::{borrow::Cow, cell::Cell, ops::Range};
 
 use crate::{
-    ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromRead, Result,
-    arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
+    ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromArgs, FromRead,
+    Result, arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
     opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, val_arg,
 };
 
@@ -457,6 +457,19 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     pub fn next_list<T: FromRead>(&mut self, sep: &str) -> Result<Vec<T>> {
         let arg = self.next_arg()?;
         self.map_res(arg_list(arg, sep))
+    }
+
+    /// Leave parsing of the next arguments to the `FromArgs` implementation of
+    /// `T`.
+    pub fn next_sub<T: FromArgs<'a, S>>(&mut self) -> Result<T> {
+        T::parse_args(self)
+    }
+
+    /// Leave the parsing of the current and following arguments to the
+    /// `FromArgs` implementation of `T`.
+    pub fn cur_sub<T: FromArgs<'a, S>>(&mut self) -> Result<T> {
+        self.cur.set(self.cur.get().saturating_sub(1));
+        self.next_sub()
     }
 
     /// Creates pretty error that the last argument (cur) is unknown.

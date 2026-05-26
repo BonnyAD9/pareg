@@ -2,6 +2,8 @@
 
 mod err;
 mod from_arg;
+mod from_args;
 mod parsef;
+mod utils;
 
-pub use self::{err::*, from_arg::*, parsef::*};
+pub use self::{err::*, from_arg::*, from_args::*, parsef::*};

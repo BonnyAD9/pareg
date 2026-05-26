@@ -8,4 +8,4 @@ mod color_mode;
 pub use self::{arg_err_ctx::*, arg_err_kind::*, arg_error::*, color_mode::*};
 
 /// Pareg result type. It is [`std::result::Result<T, ArgError<'a>>`]
-pub type Result<T> = std::result::Result<T, ArgError>;
+pub type Result<T, E = ArgError> = std::result::Result<T, E>;

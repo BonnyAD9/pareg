@@ -3,6 +3,7 @@ mod by_ref;
 pub mod check;
 mod err;
 mod from_arg;
+mod from_args;
 pub(crate) mod impl_all;
 mod pareg_ref;
 mod parsef;
@@ -16,6 +17,7 @@ pub use crate::{
     by_ref::*,
     err::*,
     from_arg::*,
+    from_args::*,
     pareg_ref::*,
     parsef::*,
     parsers::*,
@@ -833,6 +835,18 @@ impl Pareg {
     #[inline]
     pub fn next_list<T: FromRead>(&mut self, sep: &str) -> Result<Vec<T>> {
         self.inner().next_list(sep)
+    }
+
+    /// Leave parsing of the next arguments to the `FromArgs` implementation of
+    /// `T`.
+    pub fn next_sub<'a, T: FromArgs<'a>>(&'a mut self) -> Result<T> {
+        self.inner().next_sub()
+    }
+
+    /// Leave the parsing of the current and following arguments to the
+    /// `FromArgs` implementation of `T`.
+    pub fn cur_sub<'a, T: FromArgs<'a>>(&'a mut self) -> Result<T> {
+        self.inner().cur_sub()
     }
 
     /// Creates pretty error that the last argument (cur) is unknown.

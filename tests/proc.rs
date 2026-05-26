@@ -1,6 +1,6 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
-use pareg::{ArgError, FromArg, check, parsef, parsef_part};
+use pareg::{ArgError, FromArg, FromArgs, Pareg, check, parsef, parsef_part};
 
 #[test]
 pub fn test_from_arg() {
@@ -137,4 +137,31 @@ pub fn test_format() {
 
     assert!(res.is_ok());
     assert_eq!(s, "ab ");
+}
+
+#[test]
+pub fn test_from_args() {
+    #[derive(FromArgs)]
+    struct Args {
+        #[from_args("-o", "--output", default = "output.png".into())]
+        output: PathBuf,
+        #[from_args("-v", "--verbose", flag, default)]
+        verbose: bool,
+    }
+
+    let mut args = Pareg::new(vec!["-o".into(), "test.png".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("test.png"));
+    assert_eq!(parsed.verbose, false);
+
+    let mut args = Pareg::new(vec!["-v".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(parsed.verbose, true);
+
+    let mut args = Pareg::new(vec!["--lol".into()]);
+
+    assert!(args.next_sub::<Args>().is_err());
 }

@@ -15,7 +15,7 @@ use proc_macro::TokenStream;
 /// #[derive(FromArg, PartialEq, Debug)]
 /// enum ColorMode {
 ///     Auto,
-///     #[arg("yes" | "ok")]
+///     #[arg("yes", "ok")]
 ///     Always,
 ///     #[arg("no")]
 ///     Never,
@@ -33,6 +33,46 @@ use proc_macro::TokenStream;
 pub fn derive_from_arg(item: TokenStream) -> TokenStream {
     pareg_core::proc::result_to_token_stream(
         pareg_core::proc::derive_from_arg(item.into()),
+    )
+    .into()
+}
+
+/// Derives the [`pareg_core::FromArgs`] trait.
+///
+/// # Example
+/// ```
+/// use std::path::PathBuf;
+/// use pareg_core::{self as pareg, Pareg};
+/// use pareg_proc::FromArgs;
+///
+/// #[derive(FromArgs)]
+/// struct Args {
+///     #[from_args("-o", "--output", default = "output.png".into())]
+///     output: PathBuf,
+///     #[from_args("-v", "--verbose", flag, default)]
+///     verbose: bool,
+/// }
+///
+/// let mut args = Pareg::new(vec!["-o".into(), "test.png".into()]);
+/// let parsed: Args = args.next_sub().unwrap();
+///
+/// assert_eq!(parsed.output, PathBuf::from("test.png"));
+/// assert_eq!(parsed.verbose, false);
+///
+/// let mut args = Pareg::new(vec!["-v".into()]);
+/// let parsed: Args = args.next_sub().unwrap();
+///
+/// assert_eq!(parsed.output, PathBuf::from("output.png"));
+/// assert_eq!(parsed.verbose, true);
+///
+/// let mut args = Pareg::new(vec!["--lol".into()]);
+///
+/// assert!(args.next_sub::<Args>().is_err());
+/// ```
+#[proc_macro_derive(FromArgs, attributes(from_args))]
+pub fn derive_from_args(item: TokenStream) -> TokenStream {
+    pareg_core::proc::result_to_token_stream(
+        pareg_core::proc::derive_from_args(item.into()),
     )
     .into()
 }

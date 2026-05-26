@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## future
+### New features
+- Add new trait `FromArgs` for parsing multiple arguments.
+- Add new derive macro `FromArgs`.
+
 ## v0.12.0
 ### Breaking changes
 - Derive macro `FromArg` now separates variants with commas instead of `|`.
