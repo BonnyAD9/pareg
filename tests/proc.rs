@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr, sync::atomic::{self, AtomicBool}};
 
 use pareg::{ArgError, FromArg, FromArgs, Pareg, check, parsef, parsef_part};
 
@@ -139,9 +139,14 @@ pub fn test_format() {
     assert_eq!(s, "ab ");
 }
 
+static HELPED: AtomicBool = AtomicBool::new(false);
+
 #[test]
 pub fn test_from_args() {
     #[derive(FromArgs)]
+    #[from_args(match start {
+        "-h" | "-?" | "--help" => HELPED.store(true, atomic::Ordering::Relaxed)
+    })]
     struct Args {
         #[from_args("-o", "--output", default = "output.png".into())]
         output: PathBuf,
@@ -154,14 +159,17 @@ pub fn test_from_args() {
 
     assert_eq!(parsed.output, PathBuf::from("test.png"));
     assert_eq!(parsed.verbose, false);
+    assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
     let mut args = Pareg::new(vec!["-v".into()]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
     assert_eq!(parsed.verbose, true);
+    assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args = Pareg::new(vec!["--lol".into()]);
+    let mut args = Pareg::new(vec!["-h".into(), "--lol".into()]);
 
     assert!(args.next_sub::<Args>().is_err());
+    assert!(HELPED.load(atomic::Ordering::Relaxed));
 }

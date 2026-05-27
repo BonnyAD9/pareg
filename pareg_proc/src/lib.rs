@@ -38,6 +38,23 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 }
 
 /// Derives the [`pareg_core::FromArgs`] trait.
+/// 
+/// ## `#[from_args]` on field
+/// - `<string literal>`: variant for the given field.
+/// - `default`: The field is not required. Use the default implementation for
+///   default value.
+/// - `default = <expr>`: The field is not required. Use the given expression
+///   for default value.
+/// - `flag`: The field is [`bool`] which will be set to `true` if the flag is
+///   present.
+/// 
+/// ## `#[from_args]` on the type
+/// - `match start { <arms> }` custom match arms that will be before the arms
+///   for the fields. All fields are accesible with their name, but they may be
+///   option of that type instead of that type itself depending on the
+///   configuration of the field.
+/// - `match end { <arms> }` same as `match start` but places the arms after
+///   the arms for fields.
 ///
 /// # Example
 /// ```
@@ -46,6 +63,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// use pareg_proc::FromArgs;
 ///
 /// #[derive(FromArgs)]
+/// #[from_args(match start { "-h" | "-?" | "--help" => println!("help") })]
 /// struct Args {
 ///     #[from_args("-o", "--output", default = "output.png".into())]
 ///     output: PathBuf,

@@ -1,8 +1,7 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Data, DataStruct, DeriveInput, ExprAssign, Field, Ident, LitStr, Token,
-    Type, parse2, punctuated::Punctuated, spanned::Spanned,
+    Arm, Attribute, Data, DataStruct, DeriveInput, ExprAssign, ExprMatch, Field, Ident, LitStr, Token, Type, parse2, punctuated::Punctuated, spanned::Spanned
 };
 
 use crate::proc::{Error, Result, utils::extract_attribute_list};
@@ -13,6 +12,11 @@ struct FieldConfig {
     flag: bool,
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
+}
+
+struct FromArgsConfig {
+    start_match: Vec<TokenStream>,
+    end_match: Vec<TokenStream>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -29,8 +33,10 @@ pub fn derive_from_args(item: TokenStream) -> Result<TokenStream> {
         .err();
     }
 
+    let cfg = FromArgsConfig::parse(input.attrs)?;
+
     match input.data {
-        Data::Struct(sd) => derive_from_args_struct(ident, sd),
+        Data::Struct(sd) => derive_from_args_struct(ident, cfg, sd),
         _ => Error::msg_span(
             ident.span(),
             "FromArgs derive macro supports only structs.",
@@ -41,6 +47,7 @@ pub fn derive_from_args(item: TokenStream) -> Result<TokenStream> {
 
 fn derive_from_args_struct(
     ident: Ident,
+    cfg: FromArgsConfig,
     data: DataStruct,
 ) -> Result<TokenStream> {
     let fields = data
@@ -60,6 +67,8 @@ fn derive_from_args_struct(
     }
 
     let mut branches = TokenStream::new();
+    branches.extend(cfg.start_match);
+    
     for field in &fields {
         if field.names.is_empty() {
             continue;
@@ -78,7 +87,8 @@ fn derive_from_args_struct(
             });
         }
     }
-
+    
+    branches.extend(cfg.end_match);
     branches.extend(quote! {
         _ => return args.err_unknown_argument().err(),
     });
@@ -196,4 +206,55 @@ impl FieldConfig {
             default,
         })
     }
+}
+
+impl FromArgsConfig {
+    pub fn parse(attrs: Vec<Attribute>) -> Result<Self> {
+        let mut start_match = vec![];
+        let mut end_match = vec![];
+
+        for attr in attrs {
+            if !attr.path().is_ident("from_args") {
+                continue;
+            }
+            let vars = extract_attribute_list(attr)?;
+            for v in vars {
+                if let Ok(a) = parse2::<ExprMatch>(v.clone()) {
+                    let id = parse2::<Ident>(a.expr.into_token_stream())?;
+                    match id.to_string().as_str() {
+                        "start" => {
+                            start_match.extend(a.arms.into_iter().map(arm_to_token_stream));
+                        }
+                        "end" => {
+                            end_match.extend(a.arms.into_iter().map(arm_to_token_stream));
+                        }
+                        _ => {
+                            return Error::msg_span(
+                                id.span(),
+                                "Unknown option for from_args.",
+                            )
+                            .err();
+                        }
+                    }
+                } else {
+                    return Error::msg_span(
+                        v.span(),
+                        "Unknown option for FromArg.",
+                    )
+                    .err();
+                }
+            }
+        }
+
+        Ok(Self {
+            start_match,
+            end_match,
+        })
+    }
+}
+
+fn arm_to_token_stream(arm: Arm) -> TokenStream {
+    let pat = arm.pat;
+    let body = arm.body;
+    quote! { #pat => #body, }
 }
