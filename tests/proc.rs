@@ -215,8 +215,27 @@ pub fn test_from_args() {
     assert_eq!(parsed.verbose, false);
     assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args = Pareg::new(vec!["-h".into(), "--lol".into()]);
+    let mut args = Pareg::new(vec!["-h".into(), "img.png".into()]);
+    assert!(args.next_sub::<Args>().is_err());
 
+    let mut args = Pareg::new(vec![
+        "-h".into(),
+        "img.png".into(),
+        "img2.png".into(),
+        "img3.png".into(),
+    ]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec![
+        "-h".into(),
+        "img.png".into(),
+        "img2.png".into(),
+        "-i".into(),
+        "img3.png".into(),
+    ]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-h".into(), "--lol".into()]);
     assert!(args.next_sub::<Args>().is_err());
     assert!(HELPED.load(atomic::Ordering::Relaxed));
 }

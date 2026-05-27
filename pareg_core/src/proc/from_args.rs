@@ -79,15 +79,15 @@ fn derive_from_args_struct(
                     .entry(n.value())
                     .or_default()
                     .push((field, unnamed_cnt));
-                unnamed_cnt += 1;
             }
+            unnamed_cnt += 1;
         }
     }
 
     common_unnamed.retain(|_, v| v.len() > 1);
 
     let mut unnamed = TokenStream::new();
-    let mut unnamed_cnt: u32 = 0;
+    unnamed_cnt = 0;
     let mut branches = TokenStream::new();
     branches.extend(cfg.start_match);
 
@@ -165,7 +165,7 @@ fn derive_from_args_struct(
         branches.extend(quote! {
             #n => {
                 let val = __unnamed_bits | #mask;
-                match __unnamed_bits.trailing_ones() {
+                match val.trailing_ones() {
                     #arms
                     _ => return args.err_unknown_argument().hint(#msg).err(),
                 }
