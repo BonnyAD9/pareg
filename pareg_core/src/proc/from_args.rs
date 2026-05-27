@@ -10,6 +10,8 @@ use syn::{
 
 use crate::proc::{Error, Result, utils::extract_attribute_list};
 
+type UnnamedMap<'a> = HashMap<String, Vec<(&'a FieldConfig, u32)>>;
+
 struct FieldConfig {
     ident: Ident,
     typ: Type,
@@ -62,11 +64,37 @@ fn derive_from_args_struct(
         .map(FieldConfig::parse)
         .collect::<Result<Vec<_>>>()?;
 
+    let mut res = TokenStream::new();
+
+    let common_unnamed = declare_fields(&mut res, &fields);
+
+    match_args(&mut res, &cfg, &fields, common_unnamed)?;
+
+    extract_fields(&mut res, &fields);
+
+    let names: Punctuated<_, Token![,]> =
+        fields.iter().map(|a| &a.ident).collect();
+    res.extend(quote! { Ok(Self { #names }) });
+
+    Ok(quote! {
+        impl<'a, S: AsRef<str>> pareg::FromArgs<'a, S> for #ident {
+            fn parse_args(args: &mut pareg::ParegRef<'a, S>)
+                -> pareg::Result<Self>
+            {
+                #res
+            }
+        }
+    })
+}
+
+fn declare_fields<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+) -> UnnamedMap<'a> {
     let mut common_unnamed: HashMap<_, Vec<_>> = HashMap::new();
     let mut unnamed_cnt: u32 = 0;
 
-    let mut res = TokenStream::new();
-    for field in &fields {
+    for field in fields {
         let id = &field.ident;
         let ty = &field.typ;
         res.extend(quote! {
@@ -85,13 +113,53 @@ fn derive_from_args_struct(
     }
 
     common_unnamed.retain(|_, v| v.len() > 1);
+    common_unnamed
+}
 
-    let mut unnamed = TokenStream::new();
-    unnamed_cnt = 0;
+fn match_args<'a>(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    common_unnamed: UnnamedMap,
+) -> Result<()> {
     let mut branches = TokenStream::new();
-    branches.extend(cfg.start_match);
 
-    for field in &fields {
+    branches.extend(cfg.start_match.iter().cloned());
+
+    let unnamed = unique_arms(&mut branches, fields, &common_unnamed)?;
+
+    common_arms(&mut branches, common_unnamed);
+
+    branches.extend(cfg.end_match.iter().cloned());
+
+    if !unnamed.is_empty() {
+        res.extend(quote! {
+            let mut __unnamed_bits: u64 = 0;
+        });
+    }
+
+    catch_arms(&mut branches, cfg, unnamed);
+
+    res.extend(quote! {
+        while let Some(arg) = args.next() {
+            match arg {
+                #branches
+            }
+        }
+    });
+
+    Ok(())
+}
+
+fn unique_arms<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    common_unnamed: &UnnamedMap,
+) -> Result<TokenStream> {
+    let mut unnamed = TokenStream::new();
+    let mut unnamed_cnt: u32 = 0;
+
+    for field in fields {
         let id = &field.ident;
         let bit: u64 = 1 << unnamed_cnt;
 
@@ -100,11 +168,9 @@ fn derive_from_args_struct(
                 return Error::msg_span(id.span(), "Too many unnamed fields.")
                     .err();
             }
+            let expr = field.set_field(bit, quote! { args.cur_arg()? });
             unnamed.extend(quote! {
-                #unnamed_cnt => {
-                    #id = Some(args.cur_arg()?);
-                    __unnamed_bits |= #bit;
-                },
+                #unnamed_cnt => #expr,
             });
             unnamed_cnt += 1;
         }
@@ -123,46 +189,31 @@ fn derive_from_args_struct(
             continue;
         }
 
-        let mut expr = TokenStream::new();
+        let expr = field.set_field(bit, quote! { args.next_arg()? });
 
-        if field.flag {
-            expr.extend(quote! {
-                #id = Some(true);
-            });
-        } else {
-            expr.extend(quote! {
-                #id = Some(args.next_arg()?);
-            });
-        }
-
-        if field.unnamed {
-            expr.extend(quote! {
-                __unnamed_bits |= #bit;
-            });
-        }
-
-        branches.extend(quote! {
+        res.extend(quote! {
             #pat => { #expr },
         })
     }
 
+    Ok(unnamed)
+}
+
+fn common_arms(res: &mut TokenStream, common_unnamed: UnnamedMap) {
     for (n, fields) in common_unnamed {
         let mut arms = TokenStream::new();
         let mut mask = 0;
         for (field, bid) in fields {
-            let id = &field.ident;
             let bit: u64 = 1 << bid;
             mask |= bit;
+            let expr = field.set_field(bit, quote! { args.next_arg()? });
             arms.extend(quote! {
-                #bid => {
-                    #id = Some(args.next_arg()?);
-                    __unnamed_bits |= #bit;
-                }
+                #bid => #expr,
             });
         }
         mask = !mask;
         let msg = format!("All arguments for `{n}` already have value.");
-        branches.extend(quote! {
+        res.extend(quote! {
             #n => {
                 let val = __unnamed_bits | #mask;
                 match val.trailing_ones() {
@@ -172,16 +223,15 @@ fn derive_from_args_struct(
             }
         });
     }
+}
 
-    branches.extend(cfg.end_match);
-    if unnamed_cnt != 0 {
-        res.extend(quote! {
-            let mut __unnamed_bits: u64 = 0;
-        });
-    }
-
+fn catch_arms(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    unnamed: TokenStream,
+) {
     if cfg.unnamed_guard {
-        branches.extend(quote! {
+        res.extend(quote! {
             v if v.starts_with('-') => return args
                 .err_unknown_argument()
                 .hint(format!(
@@ -191,8 +241,12 @@ fn derive_from_args_struct(
         });
     }
 
-    if unnamed_cnt != 0 {
-        branches.extend(quote! {
+    if unnamed.is_empty() {
+        res.extend(quote! {
+            _ => return args.err_unknown_argument().err(),
+        });
+    } else {
+        res.extend(quote! {
             _ => match __unnamed_bits.trailing_ones() {
                 #unnamed
                 _ => return args
@@ -201,21 +255,14 @@ fn derive_from_args_struct(
                     .err(),
             }
         });
-    } else {
-        branches.extend(quote! {
-            _ => return args.err_unknown_argument().err(),
-        });
     }
+}
 
-    res.extend(quote! {
-        while let Some(arg) = args.next() {
-            match arg {
-                #branches
-            }
-        }
-    });
-
-    for field in &fields {
+fn extract_fields<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+) {
+    for field in fields {
         let id = &field.ident;
         let expr = match &field.default {
             Some(Some(v)) => quote! {
@@ -247,21 +294,33 @@ fn derive_from_args_struct(
 
         res.extend(expr);
     }
-
-    let names: Punctuated<_, Token![,]> =
-        fields.iter().map(|a| &a.ident).collect();
-    res.extend(quote! { Ok(Self { #names }) });
-
-    Ok(quote! {
-        impl<'a, S: AsRef<str>> pareg::FromArgs<'a, S> for #ident {
-            fn parse_args(args: &mut pareg::ParegRef<'a, S>) -> pareg::Result<Self> {
-                #res
-            }
-        }
-    })
 }
 
 impl FieldConfig {
+    pub fn set_field(&self, ubit: u64, value: TokenStream) -> TokenStream {
+        let id = &self.ident;
+
+        let mut res = TokenStream::new();
+
+        if self.flag {
+            res.extend(quote! {
+                #id = Some(true.into());
+            });
+        } else {
+            res.extend(quote! {
+                #id = Some(#value);
+            });
+        }
+
+        if self.unnamed {
+            res.extend(quote! {
+                __unnamed_bits |= #ubit;
+            });
+        }
+
+        quote! { { #res } }
+    }
+
     pub fn parse(field: Field) -> Result<Self> {
         let span = field.span();
         let ident = field.ident.ok_or_else(|| {
