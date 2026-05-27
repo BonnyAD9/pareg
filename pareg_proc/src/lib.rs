@@ -38,7 +38,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 }
 
 /// Derives the [`pareg_core::FromArgs`] trait.
-/// 
+///
 /// ## `#[from_args]` on field
 /// - `<string literal>`: variant for the given field.
 /// - `default`: The field is not required. Use the default implementation for
@@ -47,14 +47,23 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   for default value.
 /// - `flag`: The field is [`bool`] which will be set to `true` if the flag is
 ///   present.
-/// 
+/// - `unnamed`: Specifies that this argument may be specified set by any
+///   unknown argument. Unnamed arguments are filled in the order that they
+///   are present in the source code. Unnamed arguments can also have names
+///   specified to signify option to specify them explicitly. In addition,
+///   multiple unnamed arguments may have the same name. In that case that name
+///   will fill the first empty unnamed argument with that name.
+///
 /// ## `#[from_args]` on the type
-/// - `match start { <arms> }` custom match arms that will be before the arms
+/// - `match start { <arms> }`: custom match arms that will be before the arms
 ///   for the fields. All fields are accesible with their name, but they may be
 ///   option of that type instead of that type itself depending on the
 ///   configuration of the field.
-/// - `match end { <arms> }` same as `match start` but places the arms after
+/// - `match end { <arms> }`: same as `match start` but places the arms after
 ///   the arms for fields.
+/// - `unnamed_guard`: if present, enables guarding of unnamed arguments. This
+///   means that unnamed arguments starting with `-` are rejected as unknown
+///   argument.
 ///
 /// # Example
 /// ```
