@@ -45,20 +45,21 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   for default value. When used with `collect` and `option`, the type inside
 ///   the [`Option`] must implement [`Default`]. Otherwise ignored when used
 ///   with `option`.
-/// - `default = <expr>`: same as `default` but the given expression for
+/// - `default = <expr>`: same as `default` but uses the given expression for
 ///   default value instead of the [`Default`] implementation. When used with
 ///   `collect` and `option`, the expression has to produce the type inside the
 ///   [`Option`] and not the option itself. Otherwise ignored when used with
 ///   `option`.
-/// - `flag`: The field is [`bool`] which will be set to `true` if the flag is
-///   present. When used with `option` the field has to have type
-///   `Option<bool>`.
-/// - `unnamed`: Specifies that this argument may be specified set by any
-///   unknown argument. Unnamed arguments are filled in the order that they
-///   are present in the source code. Unnamed arguments can also have names
-///   specified to signify option to specify them explicitly. In addition,
-///   multiple unnamed arguments may have the same name. In that case that name
-///   will fill the first empty unnamed argument with that name.
+/// - `flag`: The field is type that implements `From<bool>` which will be set
+///   to `true.into()` if the flag is present. When used with `collect`, the
+///   type is expected to be collection of that type. When used with `option`
+///   the field has to be option of that type.
+/// - `unnamed`: Specifies that this argument may be set by any unknown
+///   argument. Unnamed arguments are filled in the order that they are present
+///   in the source code. Unnamed arguments can also have names specified to
+///   signify option to specify them explicitly. In addition, multiple unnamed
+///   arguments may have the same name. In that case that name will fill the
+///   first empty unnamed argument with that name.
 /// - `collect`: Specifies that this argument is expected to be present
 ///   multiple times and all occurences will be collected into a collection.
 ///   The type has to have method `extend` available with the same sematics as
