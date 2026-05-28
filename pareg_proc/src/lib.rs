@@ -61,7 +61,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   representing empty collection. If `collect` is combined with `unnamed`,
 ///   and there are unnamed fields after collect, the unnamed fields after this
 ///   one will never be filled as unnamed as the collection will consume all
-///   unnamed fields and never move to the next field.
+///   unnamed fields and never move to the next field. This is incompatible
+///   with `option`.
 /// - `collect = <range>`: Same as collect. This will also enable verification
 ///   that the number of items is within the given range. `<range>` may be any
 ///   expression for which `(<range>).contains(&field.len())` is valid and
@@ -74,10 +75,14 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `no_rewrite`: Decides how repeating arguments are handled. If set, this
 ///   field will throw error when it would be set more than once. By default
 ///   the action is decided by attribute on the `FromArgs` type of which this
-///   field is part, which is by default set to overwrite the old value.
+///   field is part, which is by default set to overwrite the old value. This
+///   is ignored by fields with `collect`.
 /// - `rewrite`: The reverse of `no_rewrite`. This us useful to allow
 ///   owerwriting the default set by the `FromArgs` type of which is this
 ///   field.
+/// - `option`: The field type is option. The option will be set to a value if
+///   the argument is present and otherwise it will be [`None`]. This is
+///   incompatible with `collect`.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
@@ -91,7 +96,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   argument.
 /// - `no_rewrite`: Decides how repeating arguments are handled. If set, fields
 ///   will throw error when they would be set more than once. By default,
-///   rewrites are allowed and the latest value is used.
+///   rewrites are allowed and the latest value is used. This is ignored by
+///   fields with `collect`.
 ///
 /// # Example
 /// ```

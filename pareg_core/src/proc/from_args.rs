@@ -17,6 +17,7 @@ struct FieldConfig {
     typ: Type,
     flag: bool,
     unnamed: bool,
+    option: bool,
     collect: Option<Option<TokenStream>>,
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
@@ -111,6 +112,10 @@ fn declare_fields<'a>(
                     let mut #id: #ty = Default::default();
                 });
             }
+        } else if field.option {
+            res.extend(quote! {
+                let mut #id: #ty = None;
+            });
         } else {
             res.extend(quote! {
                 let mut #id: Option<#ty> = None;
@@ -303,6 +308,10 @@ fn extract_fields<'a>(
             continue;
         }
 
+        if field.option {
+            continue;
+        }
+
         let expr = match &field.default {
             Some(Some(v)) => quote! {
                 let #id = #id.unwrap_or_else(|| #v);
@@ -431,6 +440,7 @@ impl FieldConfig {
         let mut unnamed = false;
         let mut collect = None;
         let mut no_rewrite = None;
+        let mut option = false;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -444,6 +454,7 @@ impl FieldConfig {
                     match n.to_string().as_str() {
                         "default" => default = Some(None),
                         "unnamed" => unnamed = true,
+                        "option" => option = true,
                         "collect" => collect = Some(None),
                         "no_rewrite" => no_rewrite = Some(true),
                         "rewrite" => no_rewrite = Some(false),
@@ -483,6 +494,14 @@ impl FieldConfig {
             }
         }
 
+        if option && collect.is_some() {
+            return Error::msg_span(
+                span,
+                "`option` and `collect` are incompatible.",
+            )
+            .err();
+        }
+
         Ok(Self {
             ident,
             typ,
@@ -492,6 +511,7 @@ impl FieldConfig {
             names,
             default,
             no_rewrite,
+            option,
         })
     }
 }

@@ -331,3 +331,25 @@ pub fn test_from_args_collect() {
     ]);
     assert!(args.next_sub::<Args>().is_err());
 }
+
+#[test]
+pub fn test_from_args_special() {
+    #[derive(FromArgs)]
+    #[from_args(unnamed_guard)]
+    struct Args {
+        #[from_args("-v", "--verbose", option)]
+        verbose: Option<bool>,
+    }
+
+    let mut args = Pareg::new(vec!["-v".into(), "true".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.verbose, Some(true));
+
+    let mut args = Pareg::new(vec!["-v".into(), "false".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.verbose, Some(false));
+
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.verbose, None);
+}
