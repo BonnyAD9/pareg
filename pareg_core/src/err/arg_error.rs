@@ -110,6 +110,12 @@ impl ArgError {
         Self::from_msg(ArgErrKind::TooManyArguments, msg, arg)
     }
 
+    pub fn invalid_number_of_arguments(
+        msg: impl Into<Cow<'static, str>>,
+    ) -> Self {
+        Self::from_msg(ArgErrKind::InvalidNumberOfArguments, msg, "")
+    }
+
     pub fn kind(&self) -> &ArgErrKind {
         &self.0.kind
     }

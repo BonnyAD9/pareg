@@ -17,6 +17,7 @@ struct FieldConfig {
     typ: Type,
     flag: bool,
     unnamed: bool,
+    collect: Option<Option<TokenStream>>,
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
 }
@@ -97,9 +98,22 @@ fn declare_fields<'a>(
     for field in fields {
         let id = &field.ident;
         let ty = &field.typ;
-        res.extend(quote! {
-            let mut #id: Option<#ty> = None;
-        });
+
+        if field.collect.is_some() {
+            if let Some(Some(d)) = &field.default {
+                res.extend(quote! {
+                    let mut #id: #ty = #d;
+                });
+            } else {
+                res.extend(quote! {
+                    let mut #id: #ty = Default::default();
+                });
+            }
+        } else {
+            res.extend(quote! {
+                let mut #id: Option<#ty> = None;
+            });
+        }
 
         if field.unnamed {
             for n in &field.names {
@@ -168,7 +182,7 @@ fn unique_arms<'a>(
                 return Error::msg_span(id.span(), "Too many unnamed fields.")
                     .err();
             }
-            let expr = field.set_field(bit, quote! { args.cur_arg()? });
+            let expr = field.set_field(bit, true);
             unnamed.extend(quote! {
                 #unnamed_cnt => #expr,
             });
@@ -189,7 +203,7 @@ fn unique_arms<'a>(
             continue;
         }
 
-        let expr = field.set_field(bit, quote! { args.next_arg()? });
+        let expr = field.set_field(bit, false);
 
         res.extend(quote! {
             #pat => { #expr },
@@ -206,7 +220,7 @@ fn common_arms(res: &mut TokenStream, common_unnamed: UnnamedMap) {
         for (field, bid) in fields {
             let bit: u64 = 1 << bid;
             mask |= bit;
-            let expr = field.set_field(bit, quote! { args.next_arg()? });
+            let expr = field.set_field(bit, false);
             arms.extend(quote! {
                 #bid => #expr,
             });
@@ -264,6 +278,23 @@ fn extract_fields<'a>(
 ) {
     for field in fields {
         let id = &field.ident;
+
+        if let Some(c) = &field.collect {
+            if let Some(r) = c {
+                let msg = format!(
+                    "Expected number of arguments for `{id}` to satisfy `{r}`."
+                );
+                res.extend(quote! {
+                    if !(#r).contains(&#id.len()) {
+                        return args.map_err(
+                            pareg::ArgError::invalid_number_of_arguments(#msg)
+                        ).err();
+                    }
+                });
+            }
+            continue;
+        }
+
         let expr = match &field.default {
             Some(Some(v)) => quote! {
                 let #id = #id.unwrap_or_else(|| #v);
@@ -297,25 +328,54 @@ fn extract_fields<'a>(
 }
 
 impl FieldConfig {
-    pub fn set_field(&self, ubit: u64, value: TokenStream) -> TokenStream {
+    pub fn set_field(&self, ubit: u64, cur: bool) -> TokenStream {
         let id = &self.ident;
 
         let mut res = TokenStream::new();
-
-        if self.flag {
-            res.extend(quote! {
-                #id = Some(true.into());
-            });
+        let value = if cur {
+            quote! { args.cur_arg()? }
         } else {
-            res.extend(quote! {
-                #id = Some(#value);
-            });
-        }
+            quote! { args.next_arg()? }
+        };
 
-        if self.unnamed {
-            res.extend(quote! {
-                __unnamed_bits |= #ubit;
-            });
+        if self.collect.is_some() {
+            if self.flag {
+                if cur {
+                    res.extend(quote! {
+                        #id.extend([#value]);
+                    });
+                } else {
+                    res.extend(quote! {
+                        #id.extend([true]);
+                    });
+                }
+            } else {
+                res.extend(quote! {
+                    #id.extend([#value]);
+                })
+            }
+        } else {
+            if self.flag {
+                if cur {
+                    res.extend(quote! {
+                        #id = Some(#value);
+                    });
+                } else {
+                    res.extend(quote! {
+                        #id = Some(true.into());
+                    });
+                }
+            } else {
+                res.extend(quote! {
+                    #id = Some(#value);
+                });
+            }
+
+            if self.unnamed {
+                res.extend(quote! {
+                    __unnamed_bits |= #ubit;
+                });
+            }
         }
 
         quote! { { #res } }
@@ -334,6 +394,7 @@ impl FieldConfig {
         let mut default = None;
         let mut flag = false;
         let mut unnamed = false;
+        let mut collect = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -347,6 +408,7 @@ impl FieldConfig {
                     match n.to_string().as_str() {
                         "default" => default = Some(None),
                         "unnamed" => unnamed = true,
+                        "collect" => collect = Some(None),
                         "flag" => flag = true,
                         _ => {
                             return Error::msg_span(
@@ -360,7 +422,10 @@ impl FieldConfig {
                     let id: Ident = parse2(a.left.into_token_stream())?;
                     match id.to_string().as_str() {
                         "default" => {
-                            default = Some(Some(a.right.into_token_stream()))
+                            default = Some(Some(a.right.into_token_stream()));
+                        }
+                        "collect" => {
+                            collect = Some(Some(a.right.into_token_stream()));
                         }
                         _ => {
                             return Error::msg_span(
@@ -385,6 +450,7 @@ impl FieldConfig {
             typ,
             flag,
             unnamed,
+            collect,
             names,
             default,
         })

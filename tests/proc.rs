@@ -239,3 +239,88 @@ pub fn test_from_args() {
     assert!(args.next_sub::<Args>().is_err());
     assert!(HELPED.load(atomic::Ordering::Relaxed));
 }
+
+#[test]
+pub fn test_from_args_collect() {
+    #[derive(FromArgs)]
+    #[from_args(unnamed_guard)]
+    struct Args {
+        #[from_args("-o", "--output", default = "output.png".into())]
+        output: PathBuf,
+        #[from_args("-v", "--verbose", flag, default)]
+        verbose: bool,
+        #[from_args("-i", "--input", unnamed, collect = 2..)]
+        inputs: Vec<PathBuf>,
+    }
+
+    let mut args = Pareg::new(vec![
+        "-o".into(),
+        "test.png".into(),
+        "-i".into(),
+        "img.png".into(),
+        "img2.png".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("test.png"));
+    assert_eq!(
+        parsed.inputs,
+        vec![PathBuf::from("img.png"), PathBuf::from("img2.png")]
+    );
+    assert_eq!(parsed.verbose, false);
+
+    let mut args =
+        Pareg::new(vec!["-v".into(), "img2.png".into(), "img3.png".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(
+        parsed.inputs,
+        vec![PathBuf::from("img2.png"), PathBuf::from("img3.png")]
+    );
+    assert_eq!(parsed.verbose, true);
+
+    let mut args = Pareg::new(vec!["img.png".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec![
+        "img.png".into(),
+        "img2.png".into(),
+        "img3.png".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(
+        parsed.inputs,
+        vec![
+            PathBuf::from("img.png"),
+            PathBuf::from("img2.png"),
+            PathBuf::from("img3.png")
+        ]
+    );
+    assert_eq!(parsed.verbose, false);
+
+    let mut args = Pareg::new(vec![
+        "img.png".into(),
+        "img2.png".into(),
+        "-i".into(),
+        "img3.png".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(
+        parsed.inputs,
+        vec![
+            PathBuf::from("img.png"),
+            PathBuf::from("img2.png"),
+            PathBuf::from("img3.png")
+        ]
+    );
+    assert_eq!(parsed.verbose, false);
+
+    let mut args = Pareg::new(vec!["--lol".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+    assert!(HELPED.load(atomic::Ordering::Relaxed));
+}

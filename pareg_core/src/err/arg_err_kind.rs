@@ -21,6 +21,8 @@ pub enum ArgErrKind {
     /// Argument is specified too many times.
     #[error("Too many arguments.")]
     TooManyArguments,
+    #[error("Invalid number of arguments.")]
+    InvalidNumberOfArguments,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }

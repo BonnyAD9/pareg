@@ -53,6 +53,24 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   specified to signify option to specify them explicitly. In addition,
 ///   multiple unnamed arguments may have the same name. In that case that name
 ///   will fill the first empty unnamed argument with that name.
+/// - `collect`: Specifies that this argument is expected to be present
+///   multiple times and all occurences will be collected into a collection.
+///   The type has to have method `extend` available with the same sematics as
+///   that of the trait [`Extend`]. The type must implement [`Default`] or the
+///   default value must be specified with `default = <expr>`. This default is
+///   representing empty collection. If `collect` is combined with `unnamed`,
+///   and there are unnamed fields after collect, the unnamed fields after this
+///   one will never be filled as unnamed as the collection will consume all
+///   unnamed fields and never move to the next field.
+/// - `collect = <range>`: Same as collect. This will also enable verification
+///   that the number of items is within the given range. `<range>` may be any
+///   expression for which `(<range>).contains(&field.len())` is valid and
+///   returns [`bool`] where <field> is variable of the type of this field.
+///   This is valid for example for standard ranges (e.g. `2..`) or arrays
+///   (e.g. `[2]`), if the collection has method `len` which returns the number
+///   of elements as [`usize`]. This range limit doesn't affect the behaviour
+///   of combination of `unnamed` and `collect` (collect will consume all
+///   remaining unnamed fields no matter the limitation in `<range>`).
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
