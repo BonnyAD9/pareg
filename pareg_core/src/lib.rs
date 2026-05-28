@@ -862,6 +862,13 @@ impl Pareg {
         self.inner().err_no_more_arguments()
     }
 
+    /// Creates error that sais that the current argument is specified too many
+    /// times.
+    #[inline]
+    pub fn err_cur_too_many_arguments(&self) -> ArgError {
+        self.inner().err_cur_too_many_arguments()
+    }
+
     /// Creates error that says that the current argument has invalid value.
     #[inline]
     pub fn err_invalid(&self) -> ArgError {

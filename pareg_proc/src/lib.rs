@@ -71,6 +71,13 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   of elements as [`usize`]. This range limit doesn't affect the behaviour
 ///   of combination of `unnamed` and `collect` (collect will consume all
 ///   remaining unnamed fields no matter the limitation in `<range>`).
+/// - `no_rewrite`: Decides how repeating arguments are handled. If set, this
+///   field will throw error when it would be set more than once. By default
+///   the action is decided by attribute on the `FromArgs` type of which this
+///   field is part, which is by default set to overwrite the old value.
+/// - `rewrite`: The reverse of `no_rewrite`. This us useful to allow
+///   owerwriting the default set by the `FromArgs` type of which is this
+///   field.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
@@ -82,6 +89,9 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `unnamed_guard`: if present, enables guarding of unnamed arguments. This
 ///   means that unnamed arguments starting with `-` are rejected as unknown
 ///   argument.
+/// - `no_rewrite`: Decides how repeating arguments are handled. If set, fields
+///   will throw error when they would be set more than once. By default,
+///   rewrites are allowed and the latest value is used.
 ///
 /// # Example
 /// ```

@@ -20,12 +20,14 @@ struct FieldConfig {
     collect: Option<Option<TokenStream>>,
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
+    no_rewrite: Option<bool>,
 }
 
 struct FromArgsConfig {
     start_match: Vec<TokenStream>,
     end_match: Vec<TokenStream>,
     unnamed_guard: bool,
+    no_rewrite: bool,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -140,9 +142,9 @@ fn match_args<'a>(
 
     branches.extend(cfg.start_match.iter().cloned());
 
-    let unnamed = unique_arms(&mut branches, fields, &common_unnamed)?;
+    let unnamed = unique_arms(&mut branches, cfg, fields, &common_unnamed)?;
 
-    common_arms(&mut branches, common_unnamed);
+    common_arms(&mut branches, cfg, common_unnamed);
 
     branches.extend(cfg.end_match.iter().cloned());
 
@@ -167,6 +169,7 @@ fn match_args<'a>(
 
 fn unique_arms<'a>(
     res: &mut TokenStream,
+    cfg: &FromArgsConfig,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
     common_unnamed: &UnnamedMap,
 ) -> Result<TokenStream> {
@@ -182,7 +185,7 @@ fn unique_arms<'a>(
                 return Error::msg_span(id.span(), "Too many unnamed fields.")
                     .err();
             }
-            let expr = field.set_field(bit, true);
+            let expr = field.set_field(cfg, bit, true);
             unnamed.extend(quote! {
                 #unnamed_cnt => #expr,
             });
@@ -203,7 +206,7 @@ fn unique_arms<'a>(
             continue;
         }
 
-        let expr = field.set_field(bit, false);
+        let expr = field.set_field(cfg, bit, false);
 
         res.extend(quote! {
             #pat => { #expr },
@@ -213,14 +216,18 @@ fn unique_arms<'a>(
     Ok(unnamed)
 }
 
-fn common_arms(res: &mut TokenStream, common_unnamed: UnnamedMap) {
+fn common_arms(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    common_unnamed: UnnamedMap,
+) {
     for (n, fields) in common_unnamed {
         let mut arms = TokenStream::new();
         let mut mask = 0;
         for (field, bid) in fields {
             let bit: u64 = 1 << bid;
             mask |= bit;
-            let expr = field.set_field(bit, false);
+            let expr = field.set_field(cfg, bit, false);
             arms.extend(quote! {
                 #bid => #expr,
             });
@@ -281,8 +288,9 @@ fn extract_fields<'a>(
 
         if let Some(c) = &field.collect {
             if let Some(r) = c {
+                let name = field.name(false);
                 let msg = format!(
-                    "Expected number of arguments for `{id}` to satisfy `{r}`."
+                    "Expected number of arguments for `{name}` to satisfy `{r}`."
                 );
                 res.extend(quote! {
                     if !(#r).contains(&#id.len()) {
@@ -328,7 +336,12 @@ fn extract_fields<'a>(
 }
 
 impl FieldConfig {
-    pub fn set_field(&self, ubit: u64, cur: bool) -> TokenStream {
+    pub fn set_field(
+        &self,
+        cfg: &FromArgsConfig,
+        ubit: u64,
+        cur: bool,
+    ) -> TokenStream {
         let id = &self.ident;
 
         let mut res = TokenStream::new();
@@ -355,6 +368,20 @@ impl FieldConfig {
                 })
             }
         } else {
+            if self.no_rewrite.unwrap_or(cfg.no_rewrite) {
+                let name = self.name(cur);
+                let msg =
+                    format!("The argument `{name}` may be set only once.");
+                res.extend(quote! {
+                    if #id.is_some() {
+                        return args
+                            .err_cur_too_many_arguments()
+                            .hint(#msg)
+                            .err();
+                    }
+                })
+            }
+
             if self.flag {
                 if cur {
                     res.extend(quote! {
@@ -381,6 +408,14 @@ impl FieldConfig {
         quote! { { #res } }
     }
 
+    pub fn name(&self, cur: bool) -> String {
+        if !cur && let Some(v) = self.names.first() {
+            v.value()
+        } else {
+            self.ident.to_string()
+        }
+    }
+
     pub fn parse(field: Field) -> Result<Self> {
         let span = field.span();
         let ident = field.ident.ok_or_else(|| {
@@ -395,6 +430,7 @@ impl FieldConfig {
         let mut flag = false;
         let mut unnamed = false;
         let mut collect = None;
+        let mut no_rewrite = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -409,6 +445,8 @@ impl FieldConfig {
                         "default" => default = Some(None),
                         "unnamed" => unnamed = true,
                         "collect" => collect = Some(None),
+                        "no_rewrite" => no_rewrite = Some(true),
+                        "rewrite" => no_rewrite = Some(false),
                         "flag" => flag = true,
                         _ => {
                             return Error::msg_span(
@@ -453,6 +491,7 @@ impl FieldConfig {
             collect,
             names,
             default,
+            no_rewrite,
         })
     }
 }
@@ -462,6 +501,7 @@ impl FromArgsConfig {
         let mut start_match = vec![];
         let mut end_match = vec![];
         let mut unnamed_guard = false;
+        let mut no_rewrite = false;
 
         for attr in attrs {
             if !attr.path().is_ident("from_args") {
@@ -472,6 +512,7 @@ impl FromArgsConfig {
                 if let Ok(a) = parse2::<Ident>(v.clone()) {
                     match a.to_string().as_str() {
                         "unnamed_guard" => unnamed_guard = true,
+                        "no_rewrite" => no_rewrite = true,
                         _ => {
                             return Error::msg_span(
                                 a.span(),
@@ -515,6 +556,7 @@ impl FromArgsConfig {
             start_match,
             end_match,
             unnamed_guard,
+            no_rewrite,
         })
     }
 }

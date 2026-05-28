@@ -245,7 +245,7 @@ pub fn test_from_args_collect() {
     #[derive(FromArgs)]
     #[from_args(unnamed_guard)]
     struct Args {
-        #[from_args("-o", "--output", default = "output.png".into())]
+        #[from_args("-o", "--output", default = "output.png".into(), no_rewrite)]
         output: PathBuf,
         #[from_args("-v", "--verbose", flag, default)]
         verbose: bool,
@@ -322,5 +322,12 @@ pub fn test_from_args_collect() {
 
     let mut args = Pareg::new(vec!["--lol".into()]);
     assert!(args.next_sub::<Args>().is_err());
-    assert!(HELPED.load(atomic::Ordering::Relaxed));
+
+    let mut args = Pareg::new(vec![
+        "-o".into(),
+        "in.png".into(),
+        "-o".into(),
+        "in2.png".into(),
+    ]);
+    assert!(args.next_sub::<Args>().is_err());
 }

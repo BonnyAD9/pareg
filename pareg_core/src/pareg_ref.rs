@@ -504,6 +504,18 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         ))
     }
 
+    /// Creates error that sais that the current argument is specified too many
+    /// times.
+    #[inline]
+    pub fn err_cur_too_many_arguments(&self) -> ArgError {
+        self.map_err(ArgError::too_many_arguments(
+            "Argument specified too many times.",
+            self.args[self.cur.get().saturating_sub(1)]
+                .as_ref()
+                .to_string(),
+        ))
+    }
+
     /// Creates error that says that the given part of the current argument has
     /// invalid value.
     #[inline]
