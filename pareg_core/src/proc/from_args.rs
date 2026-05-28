@@ -103,13 +103,20 @@ fn declare_fields<'a>(
         let ty = &field.typ;
 
         if field.collect.is_some() {
-            if let Some(Some(d)) = &field.default {
+            let value = if let Some(Some(d)) = &field.default {
+                d.clone()
+            } else {
+                quote! { Default::default() }
+            };
+
+            if field.option {
                 res.extend(quote! {
-                    let mut #id: #ty = #d;
-                });
+                    let #id: #ty = Some(#value);
+                    let mut #id = #id.unwrap();
+                })
             } else {
                 res.extend(quote! {
-                    let mut #id: #ty = Default::default();
+                    let mut #id: #ty = #value;
                 });
             }
         } else if field.option {
@@ -305,6 +312,11 @@ fn extract_fields<'a>(
                     }
                 });
             }
+            if field.option {
+                res.extend(quote! {
+                    let #id = (!#id.is_empty()).then_some(#id);
+                })
+            }
             continue;
         }
 
@@ -492,14 +504,6 @@ impl FieldConfig {
                     .err();
                 }
             }
-        }
-
-        if option && collect.is_some() {
-            return Error::msg_span(
-                span,
-                "`option` and `collect` are incompatible.",
-            )
-            .err();
         }
 
         Ok(Self {

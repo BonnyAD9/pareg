@@ -339,17 +339,22 @@ pub fn test_from_args_special() {
     struct Args {
         #[from_args("-v", "--verbose", option)]
         verbose: Option<bool>,
+        #[from_args("-i", "--input", unnamed, option, collect)]
+        input: Option<Vec<String>>,
     }
 
     let mut args = Pareg::new(vec!["-v".into(), "true".into()]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, Some(true));
+    assert_eq!(parsed.input, None);
 
     let mut args = Pareg::new(vec!["-v".into(), "false".into()]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, Some(false));
+    assert_eq!(parsed.input, None);
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::new(vec!["one".into(), "two".into()]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, None);
+    assert_eq!(parsed.input, Some(vec!["one".to_string(), "two".to_string()]));
 }

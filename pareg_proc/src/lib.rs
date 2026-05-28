@@ -41,12 +41,18 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///
 /// ## `#[from_args]` on field
 /// - `<string literal>`: variant for the given field.
-/// - `default`: The field is not required. Use the default implementation for
-///   default value.
-/// - `default = <expr>`: The field is not required. Use the given expression
-///   for default value.
+/// - `default`: The field is not required. Use the [`Default`] implementation
+///   for default value. When used with `collect` and `option`, the type inside
+///   the [`Option`] must implement [`Default`]. Otherwise ignored when used
+///   with `option`.
+/// - `default = <expr>`: same as `default` but the given expression for
+///   default value instead of the [`Default`] implementation. When used with
+///   `collect` and `option`, the expression has to produce the type inside the
+///   [`Option`] and not the option itself. Otherwise ignored when used with
+///   `option`.
 /// - `flag`: The field is [`bool`] which will be set to `true` if the flag is
-///   present.
+///   present. When used with `option` the field has to have type
+///   `Option<bool>`.
 /// - `unnamed`: Specifies that this argument may be specified set by any
 ///   unknown argument. Unnamed arguments are filled in the order that they
 ///   are present in the source code. Unnamed arguments can also have names
@@ -61,8 +67,11 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   representing empty collection. If `collect` is combined with `unnamed`,
 ///   and there are unnamed fields after collect, the unnamed fields after this
 ///   one will never be filled as unnamed as the collection will consume all
-///   unnamed fields and never move to the next field. This is incompatible
-///   with `option`.
+///   unnamed fields and never move to the next field. When used with
+///   `opition`, the type inside the option is the collection and it is
+///   required to implement method `.is_empty()` which checks whether the
+///   collection is empty or not by returning [`bool`]. This method will decide
+///   if the result is the collection or [`None`].
 /// - `collect = <range>`: Same as collect. This will also enable verification
 ///   that the number of items is within the given range. `<range>` may be any
 ///   expression for which `(<range>).contains(&field.len())` is valid and
@@ -76,13 +85,13 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   field will throw error when it would be set more than once. By default
 ///   the action is decided by attribute on the `FromArgs` type of which this
 ///   field is part, which is by default set to overwrite the old value. This
-///   is ignored by fields with `collect`.
+///   is ignored by fields with `collect`. This doesn't affect unnamed
+///   arguments.
 /// - `rewrite`: The reverse of `no_rewrite`. This us useful to allow
 ///   owerwriting the default set by the `FromArgs` type of which is this
 ///   field.
 /// - `option`: The field type is option. The option will be set to a value if
-///   the argument is present and otherwise it will be [`None`]. This is
-///   incompatible with `collect`.
+///   the argument is present and otherwise it will be [`None`].
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
@@ -97,7 +106,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `no_rewrite`: Decides how repeating arguments are handled. If set, fields
 ///   will throw error when they would be set more than once. By default,
 ///   rewrites are allowed and the latest value is used. This is ignored by
-///   fields with `collect`.
+///   fields with `collect`. This doesn't affect unnamed arguments.
 ///
 /// # Example
 /// ```
