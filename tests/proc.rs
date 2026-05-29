@@ -333,7 +333,7 @@ pub fn test_from_args_collect() {
 }
 
 #[test]
-pub fn test_from_args_special() {
+pub fn test_from_args_option() {
     #[derive(FromArgs)]
     #[from_args(unnamed_guard)]
     struct Args {
@@ -356,5 +356,65 @@ pub fn test_from_args_special() {
     let mut args = Pareg::new(vec!["one".into(), "two".into()]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, None);
-    assert_eq!(parsed.input, Some(vec!["one".to_string(), "two".to_string()]));
+    assert_eq!(
+        parsed.input,
+        Some(vec!["one".to_string(), "two".to_string()])
+    );
+}
+
+#[test]
+pub fn test_from_args_check() {
+    #[derive(Debug, Clone, PartialEq, Eq, FromArg, Default)]
+    enum Mode {
+        #[default]
+        Mode1,
+        Mode2,
+        Mode3,
+    }
+
+    #[derive(FromArgs)]
+    #[from_args(unnamed_guard)]
+    #[from_args(
+        check = mode != Some(Mode::Mode3)
+            || extension.as_deref() != Some("lol"))
+    ]
+    struct Args {
+        #[from_args("-m", "--mode", default)]
+        mode: Mode,
+        #[from_args(
+            "-e", check = matches!(mode, Some(Mode::Mode2 | Mode::Mode3)))
+        ]
+        extension: String,
+    }
+
+    let mut args = Pareg::new(vec![
+        "-m".into(),
+        "mode2".into(),
+        "-e".into(),
+        "lol".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode2);
+    assert_eq!(parsed.extension, "lol");
+
+    let mut args = Pareg::new(vec![
+        "-m".into(),
+        "mode3".into(),
+        "-e".into(),
+        "lo2".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode3);
+    assert_eq!(parsed.extension, "lo2");
+
+    let mut args = Pareg::new(vec![
+        "-m".into(),
+        "mode3".into(),
+        "-e".into(),
+        "lol".into(),
+    ]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-e".into(), "lol".into()]);
+    assert!(args.next_sub::<Args>().is_err());
 }

@@ -93,6 +93,12 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   field.
 /// - `option`: The field type is option. The option will be set to a value if
 ///   the argument is present and otherwise it will be [`None`].
+/// - `check = <expr>`: If the field is set, the condition in `<expr>` is
+///   checked. If the condition is `false` an error is emited. This field is
+///   available as not option reference for this condition and other fields are
+///   available either as options or as the fields themself depending on the
+///   field configuration. The condition is evaluated only after all arguments
+///   have been successfully parsed.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
@@ -108,6 +114,9 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   will throw error when they would be set more than once. By default,
 ///   rewrites are allowed and the latest value is used. This is ignored by
 ///   fields with `collect`. This doesn't affect unnamed arguments.
+/// - `check = <expr>`: Checks the given condition after all arguments have
+///   been parsed and their conditions succeeded. If the condition is `false`,
+///   an error is emited.
 ///
 /// # Example
 /// ```

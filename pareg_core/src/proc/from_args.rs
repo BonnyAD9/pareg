@@ -21,6 +21,7 @@ struct FieldConfig {
     collect: Option<Option<TokenStream>>,
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
+    check: Option<TokenStream>,
     no_rewrite: Option<bool>,
 }
 
@@ -29,6 +30,7 @@ struct FromArgsConfig {
     end_match: Vec<TokenStream>,
     unnamed_guard: bool,
     no_rewrite: bool,
+    check: Vec<TokenStream>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -73,6 +75,9 @@ fn derive_from_args_struct(
     let common_unnamed = declare_fields(&mut res, &fields);
 
     match_args(&mut res, &cfg, &fields, common_unnamed)?;
+
+    validate_field_check(&mut res, &fields);
+    validate_check(&mut res, &cfg);
 
     extract_fields(&mut res, &fields);
 
@@ -291,6 +296,45 @@ fn catch_arms(
     }
 }
 
+fn validate_field_check<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+) {
+    for field in fields {
+        let Some(check) = &field.check else {
+            continue;
+        };
+
+        let id = &field.ident;
+
+        let prefix = if field.collect.is_some() {
+            quote! { !#id.is_empty() }
+        } else {
+            quote! { let Some(ref #id) = #id }
+        };
+
+        let name = field.name(false);
+        let msg = format!("Argument `{name}` is allowed only if `{check}`.");
+
+        res.extend(quote! {
+            if #prefix && !(#check) {
+                return args.err_invalid().hint(#msg).err();
+            }
+        });
+    }
+}
+
+fn validate_check(res: &mut TokenStream, cfg: &FromArgsConfig) {
+    for c in &cfg.check {
+        let msg = format!("The check failed: `{c}`");
+        res.extend(quote! {
+            if !(#c) {
+                return args.err_invalid().hint(#msg).err();
+            }
+        });
+    }
+}
+
 fn extract_fields<'a>(
     res: &mut TokenStream,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
@@ -453,6 +497,7 @@ impl FieldConfig {
         let mut collect = None;
         let mut no_rewrite = None;
         let mut option = false;
+        let mut check = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -488,6 +533,9 @@ impl FieldConfig {
                         "collect" => {
                             collect = Some(Some(a.right.into_token_stream()));
                         }
+                        "check" => {
+                            check = Some(a.right.into_token_stream());
+                        }
                         _ => {
                             return Error::msg_span(
                                 id.span(),
@@ -516,6 +564,7 @@ impl FieldConfig {
             default,
             no_rewrite,
             option,
+            check,
         })
     }
 }
@@ -526,6 +575,7 @@ impl FromArgsConfig {
         let mut end_match = vec![];
         let mut unnamed_guard = false;
         let mut no_rewrite = false;
+        let mut check = vec![];
 
         for attr in attrs {
             if !attr.path().is_ident("from_args") {
@@ -537,10 +587,24 @@ impl FromArgsConfig {
                     match a.to_string().as_str() {
                         "unnamed_guard" => unnamed_guard = true,
                         "no_rewrite" => no_rewrite = true,
-                        _ => {
+                        o => {
                             return Error::msg_span(
                                 a.span(),
-                                "Unknown option for from_args.",
+                                format!("Unknown option `{o}` for from_args."),
+                            )
+                            .err();
+                        }
+                    }
+                } else if let Ok(a) = parse2::<ExprAssign>(v.clone()) {
+                    let id: Ident = parse2(a.left.into_token_stream())?;
+                    match id.to_string().as_str() {
+                        "check" => {
+                            check.push(a.right.into_token_stream());
+                        }
+                        o => {
+                            return Error::msg_span(
+                                id.span(),
+                                format!("Unknown option `{o}` for from_args."),
                             )
                             .err();
                         }
@@ -569,7 +633,7 @@ impl FromArgsConfig {
                 } else {
                     return Error::msg_span(
                         v.span(),
-                        "Unknown option for FromArg.",
+                        "Unknown expression for FromArg.",
                     )
                     .err();
                 }
@@ -581,6 +645,7 @@ impl FromArgsConfig {
             end_match,
             unnamed_guard,
             no_rewrite,
+            check,
         })
     }
 }
