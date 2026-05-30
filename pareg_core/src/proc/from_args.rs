@@ -3,14 +3,15 @@ use std::collections::HashMap;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
-    Arm, Attribute, Data, DataStruct, DeriveInput, ExprAssign, ExprMatch,
-    Field, Ident, LitStr, Token, Type, parse2, punctuated::Punctuated,
-    spanned::Spanned,
+    Arm, Attribute, Data, DataStruct, DeriveInput, ExprArray, ExprAssign,
+    ExprMatch, Field, Ident, LitStr, Token, Type, parse2,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 use crate::proc::{Error, Result, utils::extract_attribute_list};
 
 type UnnamedMap<'a> = HashMap<String, Vec<(&'a FieldConfig, u32)>>;
+type IdMap<'a> = HashMap<String, &'a FieldConfig>;
 
 struct FieldConfig {
     ident: Ident,
@@ -23,6 +24,7 @@ struct FieldConfig {
     names: Vec<LitStr>,
     check: Option<TokenStream>,
     no_rewrite: Option<bool>,
+    conflict: Vec<String>,
 }
 
 struct FromArgsConfig {
@@ -31,6 +33,7 @@ struct FromArgsConfig {
     unnamed_guard: bool,
     no_rewrite: bool,
     check: Vec<TokenStream>,
+    conflict: Vec<Vec<String>>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -72,10 +75,12 @@ fn derive_from_args_struct(
 
     let mut res = TokenStream::new();
 
-    let common_unnamed = declare_fields(&mut res, &fields);
+    let (common_unnamed, id_map) = declare_fields(&mut res, &fields);
 
     match_args(&mut res, &cfg, &fields, common_unnamed)?;
 
+    validate_conflicts(&mut res, &fields, &id_map);
+    validate_mutual_conflicts(&mut res, &cfg, &id_map);
     validate_field_check(&mut res, &fields);
     validate_check(&mut res, &cfg);
 
@@ -99,13 +104,16 @@ fn derive_from_args_struct(
 fn declare_fields<'a>(
     res: &mut TokenStream,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
-) -> UnnamedMap<'a> {
+) -> (UnnamedMap<'a>, IdMap<'a>) {
     let mut common_unnamed: HashMap<_, Vec<_>> = HashMap::new();
+    let mut id_map = HashMap::new();
     let mut unnamed_cnt: u32 = 0;
 
     for field in fields {
         let id = &field.ident;
         let ty = &field.typ;
+
+        id_map.insert(id.to_string(), field);
 
         if field.collect.is_some() {
             let value = if let Some(Some(d)) = &field.default {
@@ -146,7 +154,7 @@ fn declare_fields<'a>(
     }
 
     common_unnamed.retain(|_, v| v.len() > 1);
-    common_unnamed
+    (common_unnamed, id_map)
 }
 
 fn match_args<'a>(
@@ -293,6 +301,81 @@ fn catch_arms(
                     .err(),
             }
         });
+    }
+}
+
+fn validate_conflicts<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    id_map: &IdMap,
+) {
+    for field in fields {
+        let name = field.name(false);
+        let mut checks = TokenStream::new();
+
+        for conflict in &field.conflict {
+            let cfield = &id_map[conflict];
+            let cond = cfield.is_set();
+            let cname = cfield.name(false);
+            let msg = format!(
+                "`{name}` and `{cname}` are in conflict and they cannot be used together."
+            );
+
+            checks.extend(quote! {
+                if #cond {
+                    return args.err_invalid().hint(#msg).err();
+                }
+            });
+        }
+
+        let cond = field.is_set();
+
+        res.extend(quote! {
+            if #cond {
+                #checks
+            }
+        });
+    }
+}
+
+fn validate_mutual_conflicts(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    id_map: &IdMap,
+) {
+    for group in &cfg.conflict {
+        for (i, field) in group.iter().enumerate() {
+            if i + 1 >= group.len() {
+                continue;
+            }
+
+            let field = id_map[field];
+            let name = field.name(false);
+            let mut checks = TokenStream::new();
+
+            for conflict in &group[i + 1..] {
+                let cfield = &id_map[conflict];
+                let cond = cfield.is_set();
+                let cname = cfield.name(false);
+                let msg = format!(
+                    "`{name}` and `{cname}` are in conflict and they cannot be used together."
+                );
+
+                checks.extend(quote! {
+                    if #cond {
+                        return args.err_invalid().hint(#msg).err();
+                    }
+                });
+            }
+
+            let cond = field.is_set();
+
+            res.extend(quote! {
+                if #cond {
+                    #checks
+                }
+            });
+        }
     }
 }
 
@@ -473,6 +556,15 @@ impl FieldConfig {
         quote! { { #res } }
     }
 
+    pub fn is_set(&self) -> TokenStream {
+        let id = &self.ident;
+        if self.collect.is_some() {
+            quote! { (!#id.is_empty()) }
+        } else {
+            quote! { #id.is_some() }
+        }
+    }
+
     pub fn name(&self, cur: bool) -> String {
         if !cur && let Some(v) = self.names.first() {
             v.value()
@@ -498,6 +590,7 @@ impl FieldConfig {
         let mut no_rewrite = None;
         let mut option = false;
         let mut check = None;
+        let mut conflict = vec![];
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -536,6 +629,18 @@ impl FieldConfig {
                         "check" => {
                             check = Some(a.right.into_token_stream());
                         }
+                        "conflict" => {
+                            let idents = parse2::<ExprArray>(
+                                a.right.into_token_stream(),
+                            )?;
+                            let ids = idents.elems.into_iter().map(|a| {
+                                parse2::<Ident>(a.into_token_stream())
+                                    .map(|a| a.to_string())
+                            });
+                            for id in ids {
+                                conflict.push(id?);
+                            }
+                        }
                         _ => {
                             return Error::msg_span(
                                 id.span(),
@@ -565,6 +670,7 @@ impl FieldConfig {
             no_rewrite,
             option,
             check,
+            conflict,
         })
     }
 }
@@ -576,6 +682,7 @@ impl FromArgsConfig {
         let mut unnamed_guard = false;
         let mut no_rewrite = false;
         let mut check = vec![];
+        let mut conflict = vec![];
 
         for attr in attrs {
             if !attr.path().is_ident("from_args") {
@@ -600,6 +707,20 @@ impl FromArgsConfig {
                     match id.to_string().as_str() {
                         "check" => {
                             check.push(a.right.into_token_stream());
+                        }
+                        "conflict" => {
+                            let idents = parse2::<ExprArray>(
+                                a.right.into_token_stream(),
+                            )?;
+                            let ids = idents
+                                .elems
+                                .into_iter()
+                                .map(|a| {
+                                    parse2::<Ident>(a.into_token_stream())
+                                        .map(|a| a.to_string())
+                                })
+                                .collect::<Result<_, _>>()?;
+                            conflict.push(ids);
                         }
                         o => {
                             return Error::msg_span(
@@ -646,6 +767,7 @@ impl FromArgsConfig {
             unnamed_guard,
             no_rewrite,
             check,
+            conflict,
         })
     }
 }
