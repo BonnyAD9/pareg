@@ -424,7 +424,7 @@ pub fn test_from_args_conflict() {
     #[derive(FromArgs)]
     #[from_args(unnamed_guard)]
     struct Args {
-        #[from_args("--p1", flag, default, conflict = [prop2])]
+        #[from_args("--p1", flag, default)]
         prop1: bool,
         #[from_args("--p2", flag, default, conflict = [prop1])]
         prop2: bool,
@@ -486,4 +486,67 @@ pub fn test_from_args_mutual_conflict() {
 
     let mut args = Pareg::new(vec!["-1".into(), "-2".into(), "-3".into()]);
     assert!(args.next_sub::<Args>().is_err());
+}
+
+#[test]
+pub fn test_from_args_require() {
+    #[derive(FromArgs)]
+    #[from_args(unnamed_guard)]
+    struct Args {
+        #[from_args("--p1", flag, default, require = [prop2])]
+        prop1: bool,
+        #[from_args("--p2", flag, default)]
+        prop2: bool,
+    }
+
+    let mut args = Pareg::new(vec!["--p1".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["--p2".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(!parsed.prop1);
+    assert!(parsed.prop2);
+
+    let mut args = Pareg::new(vec!["--p1".into(), "--p2".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(parsed.prop1);
+    assert!(parsed.prop2);
+}
+
+#[test]
+pub fn test_from_args_mutual_require() {
+    #[derive(FromArgs)]
+    #[from_args(unnamed_guard, require = [prop1, prop2, prop3])]
+    struct Args {
+        #[from_args("-1", flag, default)]
+        prop1: bool,
+        #[from_args("-2", flag, default)]
+        prop2: bool,
+        #[from_args("-3", flag, default)]
+        prop3: bool,
+    }
+
+    let mut args = Pareg::new(vec!["-1".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-2".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-3".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-1".into(), "-2".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-2".into(), "-3".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-1".into(), "-3".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-1".into(), "-2".into(), "-3".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(parsed.prop1);
+    assert!(parsed.prop2);
+    assert!(parsed.prop3);
 }

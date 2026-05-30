@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Write};
 
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -25,6 +25,7 @@ struct FieldConfig {
     check: Option<TokenStream>,
     no_rewrite: Option<bool>,
     conflict: Vec<String>,
+    require: Vec<String>,
 }
 
 struct FromArgsConfig {
@@ -34,6 +35,7 @@ struct FromArgsConfig {
     no_rewrite: bool,
     check: Vec<TokenStream>,
     conflict: Vec<Vec<String>>,
+    require: Vec<Vec<String>>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -81,6 +83,8 @@ fn derive_from_args_struct(
 
     validate_conflicts(&mut res, &fields, &id_map);
     validate_mutual_conflicts(&mut res, &cfg, &id_map);
+    validate_require(&mut res, &fields, &id_map);
+    validate_mutual_require(&mut res, &cfg, &id_map);
     validate_field_check(&mut res, &fields);
     validate_check(&mut res, &cfg);
 
@@ -318,7 +322,8 @@ fn validate_conflicts<'a>(
             let cond = cfield.is_set();
             let cname = cfield.name(false);
             let msg = format!(
-                "`{name}` and `{cname}` are in conflict and they cannot be used together."
+                "`{name}` and `{cname}` are in conflict and they cannot be \
+                used together."
             );
 
             checks.extend(quote! {
@@ -358,7 +363,8 @@ fn validate_mutual_conflicts(
                 let cond = cfield.is_set();
                 let cname = cfield.name(false);
                 let msg = format!(
-                    "`{name}` and `{cname}` are in conflict and they cannot be used together."
+                    "`{name}` and `{cname}` are in conflict and they cannot \
+                    be used together."
                 );
 
                 checks.extend(quote! {
@@ -376,6 +382,74 @@ fn validate_mutual_conflicts(
                 }
             });
         }
+    }
+}
+
+fn validate_require<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    id_map: &IdMap,
+) {
+    for field in fields {
+        let name = field.name(false);
+        let mut checks = TokenStream::new();
+
+        for require in &field.require {
+            let rfield = &id_map[require];
+            let cond = rfield.is_set();
+            let rname = rfield.name(false);
+            let msg = format!(
+                "When using `{name}`, `{rname}` has to be specified as well."
+            );
+
+            checks.extend(quote! {
+                if !#cond {
+                    return args.err_no_more_arguments().hint(#msg).err();
+                }
+            });
+        }
+
+        let cond = field.is_set();
+
+        res.extend(quote! {
+            if #cond {
+                #checks
+            }
+        });
+    }
+}
+
+fn validate_mutual_require(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    id_map: &IdMap,
+) {
+    for group in &cfg.require {
+        res.extend(quote! {
+            let mut __cnt: usize = 0;
+        });
+
+        let mut msg = "Options ".to_string();
+
+        for field in group {
+            let field = id_map[field];
+            let name = field.name(false);
+            let cond = field.is_set();
+            _ = write!(msg, "`{name}, `");
+            res.extend(quote! {
+                __cnt += #cond as usize;
+            });
+        }
+
+        msg.pop();
+        msg.pop();
+        msg += "have to be all used together (either none or all).";
+        let len = group.len();
+        res.extend(quote! {
+            if __cnt != #len {
+                return args.err_no_more_arguments().hint(#msg).err();
+            }
+        });
     }
 }
 
@@ -591,6 +665,7 @@ impl FieldConfig {
         let mut option = false;
         let mut check = None;
         let mut conflict = vec![];
+        let mut require = vec![];
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -641,6 +716,18 @@ impl FieldConfig {
                                 conflict.push(id?);
                             }
                         }
+                        "require" => {
+                            let idents = parse2::<ExprArray>(
+                                a.right.into_token_stream(),
+                            )?;
+                            let ids = idents.elems.into_iter().map(|a| {
+                                parse2::<Ident>(a.into_token_stream())
+                                    .map(|a| a.to_string())
+                            });
+                            for id in ids {
+                                require.push(id?);
+                            }
+                        }
                         _ => {
                             return Error::msg_span(
                                 id.span(),
@@ -671,6 +758,7 @@ impl FieldConfig {
             option,
             check,
             conflict,
+            require,
         })
     }
 }
@@ -683,6 +771,7 @@ impl FromArgsConfig {
         let mut no_rewrite = false;
         let mut check = vec![];
         let mut conflict = vec![];
+        let mut require = vec![];
 
         for attr in attrs {
             if !attr.path().is_ident("from_args") {
@@ -721,6 +810,20 @@ impl FromArgsConfig {
                                 })
                                 .collect::<Result<_, _>>()?;
                             conflict.push(ids);
+                        }
+                        "require" => {
+                            let idents = parse2::<ExprArray>(
+                                a.right.into_token_stream(),
+                            )?;
+                            let ids = idents
+                                .elems
+                                .into_iter()
+                                .map(|a| {
+                                    parse2::<Ident>(a.into_token_stream())
+                                        .map(|a| a.to_string())
+                                })
+                                .collect::<Result<_, _>>()?;
+                            require.push(ids);
                         }
                         o => {
                             return Error::msg_span(
@@ -768,6 +871,7 @@ impl FromArgsConfig {
             no_rewrite,
             check,
             conflict,
+            require,
         })
     }
 }

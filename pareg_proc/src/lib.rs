@@ -99,9 +99,12 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   available either as options or as the fields themself depending on the
 ///   field configuration. The condition is evaluated only after all arguments
 ///   have been successfully parsed.
-/// - `conflict = [<fields>]` specifies that the fields are in conflict with
+/// - `conflict = [<fields>]`: specifies that the fields are in conflict with
 ///   this field. If this field is set and at least one of the given fields is
 ///   also set, it will produce error.
+/// - `require = [<fields>]`: specifies that if this field is set, all of the
+///   given fields have to be also set. If at least one of them is not set,
+///   parsing will result in error.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms
@@ -123,6 +126,9 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `conflict = [<fields>]`: Specify that the given fields are mutually in
 ///   conflict. This means that only one of them may be set. If more of them
 ///   are set, it will result in error.
+/// - `require = [<fields>]`: Specifies that the given fields have to be set
+///   together. If some of them is set but not all, parsing will result in
+///   error.
 ///
 /// # Example
 /// ```
