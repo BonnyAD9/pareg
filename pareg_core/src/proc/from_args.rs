@@ -446,7 +446,7 @@ fn validate_mutual_require(
         msg += "have to be all used together (either none or all).";
         let len = group.len();
         res.extend(quote! {
-            if __cnt != #len {
+            if !matches!(__cnt, 0 | #len) {
                 return args.err_no_more_arguments().hint(#msg).err();
             }
         });

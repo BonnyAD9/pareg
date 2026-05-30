@@ -428,6 +428,11 @@ pub fn test_from_args_conflict() {
         prop2: bool,
     }
 
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(!parsed.prop1);
+    assert!(!parsed.prop2);
+
     let mut args = Pareg::new(vec!["--p1".into()]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(parsed.prop1);
@@ -454,6 +459,12 @@ pub fn test_from_args_mutual_conflict() {
         #[from_args("-3", flag, default)]
         prop3: bool,
     }
+
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(!parsed.prop1);
+    assert!(!parsed.prop2);
+    assert!(!parsed.prop3);
 
     let mut args = Pareg::new(vec!["-1".into()]);
     let parsed: Args = args.next_sub().unwrap();
@@ -496,6 +507,11 @@ pub fn test_from_args_require() {
         prop2: bool,
     }
 
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(!parsed.prop1);
+    assert!(!parsed.prop2);
+
     let mut args = Pareg::new(vec!["--p1".into()]);
     assert!(args.next_sub::<Args>().is_err());
 
@@ -522,6 +538,12 @@ pub fn test_from_args_mutual_require() {
         #[from_args("-3", flag, default)]
         prop3: bool,
     }
+
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert!(!parsed.prop1);
+    assert!(!parsed.prop2);
+    assert!(!parsed.prop3);
 
     let mut args = Pareg::new(vec!["-1".into()]);
     assert!(args.next_sub::<Args>().is_err());
