@@ -10,14 +10,14 @@ use syn::{
 
 use crate::proc::{Error, Result, utils::extract_attribute_list};
 
-type UnnamedMap<'a> = HashMap<String, Vec<(&'a FieldConfig, u32)>>;
+type PositionalMap<'a> = HashMap<String, Vec<(&'a FieldConfig, u32)>>;
 type IdMap<'a> = HashMap<String, &'a FieldConfig>;
 
 struct FieldConfig {
     ident: Ident,
     typ: Type,
     flag: bool,
-    unnamed: bool,
+    positional: bool,
     option: bool,
     collect: Option<Option<TokenStream>>,
     default: Option<Option<TokenStream>>,
@@ -31,7 +31,7 @@ struct FieldConfig {
 struct FromArgsConfig {
     start_match: Vec<TokenStream>,
     end_match: Vec<TokenStream>,
-    unnamed_guard: bool,
+    positional_guard: bool,
     no_rewrite: bool,
     check: Vec<TokenStream>,
     conflict: Vec<Vec<String>>,
@@ -108,7 +108,7 @@ fn derive_from_args_struct(
 fn declare_fields<'a>(
     res: &mut TokenStream,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
-) -> (UnnamedMap<'a>, IdMap<'a>) {
+) -> (PositionalMap<'a>, IdMap<'a>) {
     let mut common_unnamed: HashMap<_, Vec<_>> = HashMap::new();
     let mut id_map = HashMap::new();
     let mut unnamed_cnt: u32 = 0;
@@ -146,7 +146,7 @@ fn declare_fields<'a>(
             });
         }
 
-        if field.unnamed {
+        if field.positional {
             for n in &field.names {
                 common_unnamed
                     .entry(n.value())
@@ -165,7 +165,7 @@ fn match_args<'a>(
     res: &mut TokenStream,
     cfg: &FromArgsConfig,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
-    common_unnamed: UnnamedMap,
+    common_unnamed: PositionalMap,
 ) -> Result<()> {
     let mut branches = TokenStream::new();
 
@@ -200,32 +200,32 @@ fn unique_arms<'a>(
     res: &mut TokenStream,
     cfg: &FromArgsConfig,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
-    common_unnamed: &UnnamedMap,
+    common_positional: &PositionalMap,
 ) -> Result<TokenStream> {
     let mut unnamed = TokenStream::new();
-    let mut unnamed_cnt: u32 = 0;
+    let mut positional_cnt: u32 = 0;
 
     for field in fields {
         let id = &field.ident;
-        let bit: u64 = 1 << unnamed_cnt;
+        let bit: u64 = 1 << positional_cnt;
 
-        if field.unnamed {
-            if unnamed_cnt >= 63 {
+        if field.positional {
+            if positional_cnt >= 63 {
                 return Error::msg_span(id.span(), "Too many unnamed fields.")
                     .err();
             }
             let expr = field.set_field(cfg, bit, true);
             unnamed.extend(quote! {
-                #unnamed_cnt => #expr,
+                #positional_cnt => #expr,
             });
-            unnamed_cnt += 1;
+            positional_cnt += 1;
         }
 
-        let pat: Punctuated<_, Token![|]> = if field.unnamed {
+        let pat: Punctuated<_, Token![|]> = if field.positional {
             field
                 .names
                 .iter()
-                .filter(|v| !common_unnamed.contains_key(&v.value()))
+                .filter(|v| !common_positional.contains_key(&v.value()))
                 .collect()
         } else {
             field.names.iter().collect()
@@ -248,9 +248,9 @@ fn unique_arms<'a>(
 fn common_arms(
     res: &mut TokenStream,
     cfg: &FromArgsConfig,
-    common_unnamed: UnnamedMap,
+    common_positional: PositionalMap,
 ) {
-    for (n, fields) in common_unnamed {
+    for (n, fields) in common_positional {
         let mut arms = TokenStream::new();
         let mut mask = 0;
         for (field, bid) in fields {
@@ -280,7 +280,7 @@ fn catch_arms(
     cfg: &FromArgsConfig,
     unnamed: TokenStream,
 ) {
-    if cfg.unnamed_guard {
+    if cfg.positional_guard {
         res.extend(quote! {
             v if v.starts_with('-') => return args
                 .err_unknown_argument()
@@ -532,8 +532,8 @@ fn extract_fields<'a>(
             Some(None) => quote! {
                 let #id = #id.unwrap_or_default();
             },
-            None if field.unnamed => {
-                let msg = format!("Missing unnamed argument for `{id}`.");
+            None if field.positional => {
+                let msg = format!("Missing positional argument for `{id}`.");
                 quote! {
                     let Some(#id) = #id else {
                         return args.err_no_more_arguments().hint(#msg).err();
@@ -620,7 +620,7 @@ impl FieldConfig {
                 });
             }
 
-            if self.unnamed {
+            if self.positional {
                 res.extend(quote! {
                     __unnamed_bits |= #ubit;
                 });
@@ -659,7 +659,7 @@ impl FieldConfig {
         let mut names = vec![];
         let mut default = None;
         let mut flag = false;
-        let mut unnamed = false;
+        let mut positional = false;
         let mut collect = None;
         let mut no_rewrite = None;
         let mut option = false;
@@ -678,7 +678,7 @@ impl FieldConfig {
                 } else if let Ok(n) = parse2::<Ident>(v.clone()) {
                     match n.to_string().as_str() {
                         "default" => default = Some(None),
-                        "unnamed" => unnamed = true,
+                        "positional" => positional = true,
                         "option" => option = true,
                         "collect" => collect = Some(None),
                         "no_rewrite" => no_rewrite = Some(true),
@@ -750,7 +750,7 @@ impl FieldConfig {
             ident,
             typ,
             flag,
-            unnamed,
+            positional,
             collect,
             names,
             default,
@@ -767,7 +767,7 @@ impl FromArgsConfig {
     pub fn parse(attrs: Vec<Attribute>) -> Result<Self> {
         let mut start_match = vec![];
         let mut end_match = vec![];
-        let mut unnamed_guard = false;
+        let mut positional_guard = false;
         let mut no_rewrite = false;
         let mut check = vec![];
         let mut conflict = vec![];
@@ -781,7 +781,7 @@ impl FromArgsConfig {
             for v in vars {
                 if let Ok(a) = parse2::<Ident>(v.clone()) {
                     match a.to_string().as_str() {
-                        "unnamed_guard" => unnamed_guard = true,
+                        "positional_guard" => positional_guard = true,
                         "no_rewrite" => no_rewrite = true,
                         o => {
                             return Error::msg_span(
@@ -867,7 +867,7 @@ impl FromArgsConfig {
         Ok(Self {
             start_match,
             end_match,
-            unnamed_guard,
+            positional_guard,
             no_rewrite,
             check,
             conflict,

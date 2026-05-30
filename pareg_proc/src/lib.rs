@@ -54,25 +54,25 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   to `true.into()` if the flag is present. When used with `collect`, the
 ///   type is expected to be collection of that type. When used with `option`
 ///   the field has to be option of that type.
-/// - `unnamed`: Specifies that this argument may be set by any unknown
-///   argument. Unnamed arguments are filled in the order that they are present
-///   in the source code. Unnamed arguments can also have names specified to
-///   signify option to specify them explicitly. In addition, multiple unnamed
-///   arguments may have the same name. In that case that name will fill the
-///   first empty unnamed argument with that name.
+/// - `positional`: Specifies that this argument may be set by any unknown
+///   argument. Positional arguments are filled in the order that they are
+///   present in the source code. Positional arguments can also have names
+///   specified to signify option to specify them explicitly. In addition,
+///   multiple positional arguments may have the same name. In that case that
+///   name will fill the first empty positional argument with that name.
 /// - `collect`: Specifies that this argument is expected to be present
 ///   multiple times and all occurences will be collected into a collection.
 ///   The type has to have method `extend` available with the same sematics as
 ///   that of the trait [`Extend`]. The type must implement [`Default`] or the
 ///   default value must be specified with `default = <expr>`. This default is
-///   representing empty collection. If `collect` is combined with `unnamed`,
-///   and there are unnamed fields after collect, the unnamed fields after this
-///   one will never be filled as unnamed as the collection will consume all
-///   unnamed fields and never move to the next field. When used with
-///   `opition`, the type inside the option is the collection and it is
-///   required to implement method `.is_empty()` which checks whether the
-///   collection is empty or not by returning [`bool`]. This method will decide
-///   if the result is the collection or [`None`].
+///   representing empty collection. If `collect` is combined with
+///   `positional`, and there are positional fields after collect, the
+///   positional fields after this one will never be filled as positional as
+///   the collection will consume all positional fields and never move to the
+///   next field. When used with `opition`, the type inside the option is the
+///   collection and it is required to implement method `.is_empty()` which
+///   checks whether the collection is empty or not by returning [`bool`]. This
+///   method will decide if the result is the collection or [`None`].
 /// - `collect = <range>`: Same as collect. This will also enable verification
 ///   that the number of items is within the given range. `<range>` may be any
 ///   expression for which `(<range>).contains(&field.len())` is valid and
@@ -80,13 +80,13 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   This is valid for example for standard ranges (e.g. `2..`) or arrays
 ///   (e.g. `[2]`), if the collection has method `len` which returns the number
 ///   of elements as [`usize`]. This range limit doesn't affect the behaviour
-///   of combination of `unnamed` and `collect` (collect will consume all
-///   remaining unnamed fields no matter the limitation in `<range>`).
+///   of combination of `positional` and `collect` (collect will consume all
+///   remaining positional fields no matter the limitation in `<range>`).
 /// - `no_rewrite`: Decides how repeating arguments are handled. If set, this
 ///   field will throw error when it would be set more than once. By default
 ///   the action is decided by attribute on the `FromArgs` type of which this
 ///   field is part, which is by default set to overwrite the old value. This
-///   is ignored by fields with `collect`. This doesn't affect unnamed
+///   is ignored by fields with `collect`. This doesn't affect positional
 ///   arguments.
 /// - `rewrite`: The reverse of `no_rewrite`. This us useful to allow
 ///   owerwriting the default set by the `FromArgs` type of which is this
@@ -113,13 +113,13 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   configuration of the field.
 /// - `match end { <arms> }`: same as `match start` but places the arms after
 ///   the arms for fields.
-/// - `unnamed_guard`: if present, enables guarding of unnamed arguments. This
-///   means that unnamed arguments starting with `-` are rejected as unknown
-///   argument.
+/// - `positional_guard`: if present, enables guarding of positional arguments.
+///   This means that positional arguments starting with `-` are rejected as
+///   unknown argument.
 /// - `no_rewrite`: Decides how repeating arguments are handled. If set, fields
 ///   will throw error when they would be set more than once. By default,
 ///   rewrites are allowed and the latest value is used. This is ignored by
-///   fields with `collect`. This doesn't affect unnamed arguments.
+///   fields with `collect`. This doesn't affect positional arguments.
 /// - `check = <expr>`: Checks the given condition after all arguments have
 ///   been parsed and their conditions succeeded. If the condition is `false`,
 ///   an error is emited.

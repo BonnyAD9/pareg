@@ -151,15 +151,15 @@ pub fn test_from_args() {
     #[from_args(match start {
         "-h" | "-?" | "--help" => HELPED.store(true, atomic::Ordering::Relaxed)
     })]
-    #[from_args(unnamed_guard)]
+    #[from_args(positional_guard)]
     struct Args {
         #[from_args("-o", "--output", default = "output.png".into())]
         output: PathBuf,
         #[from_args("-v", "--verbose", flag, default)]
         verbose: bool,
-        #[from_args("-i", "--input1", unnamed)]
+        #[from_args("-i", "--input1", positional)]
         input1: PathBuf,
-        #[from_args("-i", "--input2", unnamed)]
+        #[from_args("-i", "--input2", positional)]
         input2: PathBuf,
     }
 
@@ -243,13 +243,13 @@ pub fn test_from_args() {
 #[test]
 pub fn test_from_args_collect() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard)]
+    #[from_args(positional_guard)]
     struct Args {
         #[from_args("-o", "--output", default = "output.png".into(), no_rewrite)]
         output: PathBuf,
         #[from_args("-v", "--verbose", flag, default)]
         verbose: bool,
-        #[from_args("-i", "--input", unnamed, collect = 2..)]
+        #[from_args("-i", "--input", positional, collect = 2..)]
         inputs: Vec<PathBuf>,
     }
 
@@ -335,11 +335,11 @@ pub fn test_from_args_collect() {
 #[test]
 pub fn test_from_args_option() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard)]
+    #[from_args(positional_guard)]
     struct Args {
         #[from_args("-v", "--verbose", option)]
         verbose: Option<bool>,
-        #[from_args("-i", "--input", unnamed, option, collect)]
+        #[from_args("-i", "--input", positional, option, collect)]
         input: Option<Vec<String>>,
     }
 
@@ -373,7 +373,6 @@ pub fn test_from_args_check() {
     }
 
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard)]
     #[from_args(
         check = mode != Some(Mode::Mode3)
             || extension.as_deref() != Some("lol"))
@@ -422,7 +421,6 @@ pub fn test_from_args_check() {
 #[test]
 pub fn test_from_args_conflict() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard)]
     struct Args {
         #[from_args("--p1", flag, default)]
         prop1: bool,
@@ -447,7 +445,7 @@ pub fn test_from_args_conflict() {
 #[test]
 pub fn test_from_args_mutual_conflict() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard, conflict = [prop1, prop2, prop3])]
+    #[from_args(conflict = [prop1, prop2, prop3])]
     struct Args {
         #[from_args("-1", flag, default)]
         prop1: bool,
@@ -491,7 +489,6 @@ pub fn test_from_args_mutual_conflict() {
 #[test]
 pub fn test_from_args_require() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard)]
     struct Args {
         #[from_args("--p1", flag, default, require = [prop2])]
         prop1: bool,
@@ -516,7 +513,7 @@ pub fn test_from_args_require() {
 #[test]
 pub fn test_from_args_mutual_require() {
     #[derive(FromArgs)]
-    #[from_args(unnamed_guard, require = [prop1, prop2, prop3])]
+    #[from_args(require = [prop1, prop2, prop3])]
     struct Args {
         #[from_args("-1", flag, default)]
         prop1: bool,
