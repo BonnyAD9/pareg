@@ -99,6 +99,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   available either as options or as the fields themself depending on the
 ///   field configuration. The condition is evaluated only after all arguments
 ///   have been successfully parsed.
+/// - `otherwise = <cond>`: If the field is not set, the given condition must be true.
+///   If it is not true, the parsing will result in error.
 /// - `conflict = [<fields>]`: specifies that the fields are in conflict with
 ///   this field. If this field is set and at least one of the given fields is
 ///   also set, it will produce error.

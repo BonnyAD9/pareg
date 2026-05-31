@@ -102,7 +102,8 @@ impl ArgErrCtx {
     /// Add arguments to the error so that it may have better error message.
     /// Mostly useful internaly in pareg.
     pub fn add_args(&mut self, args: Vec<String>, idx: usize) {
-        if self.args[self.error_idx].len() != args[idx].len()
+        if !args.is_empty()
+            && self.args[self.error_idx].len() != args[idx].len()
             && let Some(shift) = args[idx].find(&self.args[self.error_idx])
         {
             self.error_span.start += shift;

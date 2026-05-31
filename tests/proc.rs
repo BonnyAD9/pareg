@@ -419,6 +419,66 @@ pub fn test_from_args_check() {
 }
 
 #[test]
+pub fn test_from_args_otherwise() {
+    #[derive(Debug, Clone, PartialEq, Eq, FromArg, Default)]
+    enum Mode {
+        #[default]
+        Mode1,
+        Mode2,
+        Mode3,
+    }
+
+    #[derive(FromArgs)]
+    struct Args {
+        #[from_args("-m", "--mode", default)]
+        mode: Mode,
+        #[from_args(
+            "-e", option,
+            otherwise = matches!(mode, None | Some(Mode::Mode1 | Mode::Mode2))
+        )]
+        extension: Option<String>,
+    }
+
+    let mut args = Pareg::new(vec!["-e".into(), "lol".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode1);
+    assert_eq!(parsed.extension, Some("lol".into()));
+
+    let mut args = Pareg::new(vec![
+        "-m".into(),
+        "mode2".into(),
+        "-e".into(),
+        "lol".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode2);
+    assert_eq!(parsed.extension, Some("lol".to_string()));
+
+    let mut args = Pareg::new(vec![
+        "-m".into(),
+        "mode3".into(),
+        "-e".into(),
+        "lo2".into(),
+    ]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode3);
+    assert_eq!(parsed.extension, Some("lo2".to_string()));
+
+    let mut args = Pareg::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode1);
+    assert_eq!(parsed.extension, None);
+
+    let mut args = Pareg::new(vec!["-m".into(), "mode2".into()]);
+    let parsed: Args = args.next_sub().unwrap();
+    assert_eq!(parsed.mode, Mode::Mode2);
+    assert_eq!(parsed.extension, None);
+
+    let mut args = Pareg::new(vec!["-m".into(), "mode3".into()]);
+    assert!(args.next_sub::<Args>().is_err());
+}
+
+#[test]
 pub fn test_from_args_conflict() {
     #[derive(FromArgs)]
     struct Args {

@@ -23,6 +23,7 @@ struct FieldConfig {
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
     check: Option<TokenStream>,
+    otherwise: Option<TokenStream>,
     no_rewrite: Option<bool>,
     conflict: Vec<String>,
     require: Vec<String>,
@@ -86,6 +87,7 @@ fn derive_from_args_struct(
     validate_require(&mut res, &fields, &id_map);
     validate_mutual_require(&mut res, &cfg, &id_map);
     validate_field_check(&mut res, &fields);
+    validate_field_otherwise(&mut res, &fields);
     validate_check(&mut res, &cfg);
 
     extract_fields(&mut res, &fields);
@@ -481,6 +483,28 @@ fn validate_field_check<'a>(
     }
 }
 
+fn validate_field_otherwise<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+) {
+    for field in fields {
+        let Some(check) = &field.otherwise else {
+            continue;
+        };
+
+        let is_set = field.is_set();
+
+        let name = field.name(false);
+        let msg = format!("Argument `{name}` must be set if `{check}`.");
+
+        res.extend(quote! {
+            if !#is_set && !(#check) {
+                return args.err_invalid().hint(#msg).err();
+            }
+        });
+    }
+}
+
 fn validate_check(res: &mut TokenStream, cfg: &FromArgsConfig) {
     for c in &cfg.check {
         let msg = format!("The check failed: `{c}`");
@@ -664,6 +688,7 @@ impl FieldConfig {
         let mut no_rewrite = None;
         let mut option = false;
         let mut check = None;
+        let mut otherwise = None;
         let mut conflict = vec![];
         let mut require = vec![];
 
@@ -703,6 +728,9 @@ impl FieldConfig {
                         }
                         "check" => {
                             check = Some(a.right.into_token_stream());
+                        }
+                        "otherwise" => {
+                            otherwise = Some(a.right.into_token_stream());
                         }
                         "conflict" => {
                             let idents = parse2::<ExprArray>(
@@ -757,6 +785,7 @@ impl FieldConfig {
             no_rewrite,
             option,
             check,
+            otherwise,
             conflict,
             require,
         })
