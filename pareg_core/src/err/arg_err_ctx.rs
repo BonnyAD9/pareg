@@ -1,5 +1,6 @@
 use std::{
-    borrow::Cow, cell::LazyCell, collections::VecDeque, fmt::Display, ops::RangeBounds, range::Range
+    borrow::Cow, cell::LazyCell, collections::VecDeque, fmt::Display,
+    ops::RangeBounds, range::Range,
 };
 
 use termal::{writemc, writemcln};

@@ -1,4 +1,7 @@
-use std::{ops::{Bound, RangeBounds}, range::Range};
+use std::{
+    ops::{Bound, RangeBounds},
+    range::Range,
+};
 
 pub fn get_range(r: impl RangeBounds<usize>) -> Range<usize> {
     let start = match r.start_bound() {
