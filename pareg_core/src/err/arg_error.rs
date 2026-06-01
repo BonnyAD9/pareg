@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Display, ops::Range};
+use std::{borrow::Cow, fmt::Display, ops::RangeBounds};
 
 use crate::{ArgErrKind, ColorMode};
 
@@ -49,7 +49,7 @@ impl ArgError {
         self
     }
 
-    pub fn spanned(mut self, span: Range<usize>) -> Self {
+    pub fn spanned(mut self, span: impl RangeBounds<usize>) -> Self {
         self.0.spanned(span);
         self
     }

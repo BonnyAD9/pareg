@@ -1,11 +1,10 @@
 use std::{
-    borrow::Cow, cell::LazyCell, collections::VecDeque, fmt::Display,
-    ops::Range,
+    borrow::Cow, cell::LazyCell, collections::VecDeque, fmt::Display, ops::RangeBounds, range::Range
 };
 
 use termal::{writemc, writemcln};
 
-use crate::ArgErrKind;
+use crate::{ArgErrKind, utils::get_range};
 
 use super::ColorMode;
 
@@ -44,7 +43,7 @@ impl ArgErrCtx {
             kind: kind.into(),
             args: vec![],
             error_idx: 0,
-            error_span: 0..0,
+            error_span: (0..0).into(),
             inline_msg: None,
             long_msg: None,
             hint: None,
@@ -69,7 +68,7 @@ impl ArgErrCtx {
         arg: String,
     ) -> Self {
         Self {
-            error_span: 0..arg.len(),
+            error_span: (0..arg.len()).into(),
             args: vec![arg],
             inline_msg: Some(message.into()),
             ..Self::new(kind)
@@ -88,7 +87,7 @@ impl ArgErrCtx {
     /// span will be adjusted.
     pub fn part_of(&mut self, arg: String) {
         if self.args[self.error_idx].len() == arg.len() {
-            self.error_span = 0..arg.len();
+            self.error_span = (0..arg.len()).into();
             self.args[self.error_idx] = arg;
             return;
         }
@@ -119,8 +118,8 @@ impl ArgErrCtx {
     }
 
     /// Adds span to the error message.
-    pub fn spanned(&mut self, span: Range<usize>) {
-        self.error_span = span;
+    pub fn spanned(&mut self, span: impl RangeBounds<usize>) {
+        self.error_span = get_range(span);
     }
 
     /// Sets the start value of the span
@@ -292,7 +291,7 @@ impl Display for ArgErrCtx {
         }
 
         err_pos -= 2;
-        let err_len = self.error_span.len();
+        let err_len = self.error_span.end - self.error_span.start;
         writemcln!(
             f,
             color,

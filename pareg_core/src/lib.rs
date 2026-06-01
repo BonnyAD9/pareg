@@ -11,6 +11,7 @@ mod parsers;
 pub mod proc;
 pub mod reader;
 mod starts;
+mod utils;
 
 pub use crate::{
     arg_into::*,
@@ -24,7 +25,7 @@ pub use crate::{
     reader::{FromRead, ReadFmt, Reader, ReaderChars, SetFromRead},
 };
 
-use std::{borrow::Cow, cell::Cell, env, ops::Range};
+use std::{borrow::Cow, cell::Cell, env, ops::RangeBounds};
 
 /// Helper for parsing arguments.
 ///
@@ -885,7 +886,7 @@ impl Pareg {
     /// Creates error that says that the given part of the current argument has
     /// invalid value.
     #[inline]
-    pub fn err_invalid_span(&self, span: Range<usize>) -> ArgError {
+    pub fn err_invalid_span(&self, span: impl RangeBounds<usize>) -> ArgError {
         self.inner().err_invalid_span(span)
     }
 

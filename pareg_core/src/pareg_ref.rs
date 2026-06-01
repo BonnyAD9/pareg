@@ -1,9 +1,7 @@
-use std::{borrow::Cow, cell::Cell, ops::Range};
+use std::{borrow::Cow, cell::Cell, ops::RangeBounds, range::Range};
 
 use crate::{
-    ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromArgs, FromRead,
-    Result, arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
-    opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, val_arg,
+    ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromArgs, FromRead, Result, arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg, opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, utils::get_range, val_arg
 };
 
 /// Helper for parsing arguments.
@@ -481,7 +479,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         ArgError::new(ArgErrCtx {
             args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.cur.get().saturating_sub(1),
-            error_span: 0..arg.len(),
+            error_span: (0..arg.len()).into(),
             inline_msg: Some("Unknown argument.".into()),
             long_msg: long_message,
             ..ArgErrCtx::new(ArgErrKind::UnknownArgument)
@@ -519,10 +517,11 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// Creates error that says that the given part of the current argument has
     /// invalid value.
     #[inline]
-    pub fn err_invalid_span(&self, mut span: Range<usize>) -> ArgError {
+    pub fn err_invalid_span(&self, span: impl RangeBounds<usize>) -> ArgError {
         let value = self.cur().unwrap_or_default();
+        let mut span = get_range(span);
         if span.start > value.len() || span.end > value.len() {
-            span = 0..value.len()
+            span = Range::from(0..value.len());
         }
         self.map_err(ArgError::invalid_value(
             "Invalid value for argument",
@@ -545,7 +544,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         ArgError::new(ArgErrCtx {
             args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
             error_idx: self.args.len().saturating_sub(1),
-            error_span: pos..pos,
+            error_span: (pos..pos).into(),
             inline_msg: Some("Expected more arguments.".into()),
             long_msg: long_message,
             ..ArgErrCtx::new(ArgErrKind::NoMoreArguments)

@@ -153,7 +153,7 @@ pub fn derive_from_arg(item: TokenStream) -> Result<TokenStream> {
                     _ => {
                         pareg::ArgError::new(pareg::ArgErrCtx {
                             args: vec![arg.into()],
-                            error_span: 0..arg.len(),
+                            error_span: (0..arg.len()).into(),
                             inline_msg: Some("Unknown option.".into()),
                             long_msg: Some(
                                 format!("Unknown option `{arg}`.").into()

@@ -73,7 +73,7 @@ where
     let Some((k, v)) = arg.split_once(sep) else {
         return ArgError::new(ArgErrCtx {
             args: vec![arg.into()],
-            error_span: 0..arg.len(),
+            error_span: (0..arg.len()).into(),
             inline_msg: Some(format!("Missing separator `{sep}`.").into()),
             long_msg: Some(format!("Missing separator `{sep}` for key value pair.").into()),
             hint: Some(format!("Use the separator `{sep}` to split the argument into key and value.").into()),
@@ -110,7 +110,7 @@ pub fn bool_arg(t: &str, f: &str, arg: &str) -> Result<bool> {
     } else {
         ArgError::new(ArgErrCtx {
             args: vec![arg.into()],
-            error_span: 0..arg.len(),
+            error_span: (0..arg.len()).into(),
             inline_msg: Some("Invalid value.".into()),
             long_msg: Some(format!("Invalid value `{arg}`").into()),
             hint: Some(format!("Expected `{t}` or `{f}`").into()),
@@ -157,7 +157,7 @@ pub fn opt_bool_arg(
     } else {
         ArgError::new(ArgErrCtx {
             args: vec![arg.into()],
-            error_span: 0..arg.len(),
+            error_span: (0..arg.len()).into(),
             inline_msg: Some("Invalid value.".into()),
             long_msg: Some(format!("Invalid value `{arg}`").into()),
             hint: Some(format!("Expected `{t}`, `{f}` or `{n}`").into()),

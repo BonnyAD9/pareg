@@ -5,6 +5,10 @@
 - Add new trait `FromArgs` for parsing multiple arguments.
 - Add new derive macro `FromArgs`.
 
+### Changes
+- Incorporate the new range.
+- All error spans now use the trait `RangeBounds` instead of explicit range.
+
 ## v0.12.0
 ### Breaking changes
 - Derive macro `FromArg` now separates variants with commas instead of `|`.
