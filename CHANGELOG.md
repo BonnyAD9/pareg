@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.12.1
 ### New features
 - Add new trait `FromArgs` for parsing multiple arguments.
 - Add new derive macro `FromArgs`.
