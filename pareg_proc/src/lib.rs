@@ -6,7 +6,7 @@ use proc_macro::TokenStream;
 /// The parsing is case insensitive.
 ///
 /// The arguments for the `arg` attribute must be lowercase to match properly.
-/// 
+///
 /// Options on enum:
 /// - `exact`: Dont infer any name and dont do any case conversions.
 ///   Everything must match the arguments specified in `arg`. If there is
@@ -14,13 +14,14 @@ use proc_macro::TokenStream;
 ///   parsing.
 /// - `split = <char>`: For variants with values, split the value from the
 ///   variant name with the given character literal.
-/// 
+///
 /// Options on variants:
 /// - `exact`: This variant will have no implicit name.
 /// - `split = <char>`: For variants with values, split the value from the
 ///   variant name with the given character literal.
 /// - `default`, `default = <expr>`: Specify the default value for variant with
 ///   value.
+/// - `parser = <expr>`: Callable that parses the value.
 ///
 /// # Examples
 /// ```

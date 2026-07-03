@@ -16,6 +16,8 @@
 - New method `Pareg::args_os`.
 - New type `LossyString`.
 - New function `arg_to_string_lossy`.
+- `FromArg` derive macro now has new option `parser` to specify how the value
+  is parsed.
 
 ### Changes
 - `Pareg` is now generic over its string type.

@@ -31,6 +31,26 @@ pub fn test_from_arg() {
 }
 
 #[test]
+pub fn test_from_parser() {
+    #[derive(PartialEq, Eq, Debug, FromArg)]
+    enum Value {
+        #[arg(parser = |a| pareg::split_arg(a, ","), default)]
+        Path(Vec<String>),
+        #[arg(parser = |a| pareg::split_arg(a, ","))]
+        List(Vec<usize>),
+    }
+
+    assert_eq!(
+        Value::from_arg("path=a,b").unwrap(),
+        Value::Path(vec!["a".to_string(), "b".to_string()])
+    );
+    assert_eq!(
+        Value::from_arg("list=1,2,3").unwrap(),
+        Value::List(vec![1, 2, 3])
+    );
+}
+
+#[test]
 pub fn test_parsef() {
     #[derive(Debug, Default, PartialEq)]
     struct Address {

@@ -13,6 +13,7 @@ struct FromArgConfig {
     split: Option<char>,
     matches: Vec<LitStr>,
     default: Option<Expr>,
+    parser: Option<Expr>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArg`]
@@ -109,19 +110,51 @@ pub fn derive_from_arg(item: TokenStream) -> Result<TokenStream> {
         } else {
             let spl = LitChar::new(conf.split(), Span::call_site());
             if let Some(d) = conf.default {
-                quote! {
-                    v if pareg::has_any_key!(v, #spl, #ors) => Ok(Self::#ident(
-                        pareg::mval_arg(v, #spl)?.unwrap_or_else(|| #d)
-                    )),
+                if let Some(p) = conf.parser {
+                    quote! {
+                        v if pareg::has_any_key!(v, #spl, #ors) => {
+                            Ok(Self::#ident(
+                                pareg::mval_arg::<&str>(v, #spl)?
+                                    .map(|v| {
+                                        let r: pareg::Result<_> = (#p)(v);
+                                        r
+                                    })
+                                    .transpose()?
+                                    .unwrap_or_else(|| #d)
+                            ))
+                        },
+                    }
+                    .to_tokens(&mut res);
+                } else {
+                    quote! {
+                        v if pareg::has_any_key!(v, #spl, #ors) => {
+                            Ok(Self::#ident(
+                                pareg::mval_arg(v, #spl)?.unwrap_or_else(|| #d)
+                            ))
+                        },
+                    }
+                    .to_tokens(&mut res);
                 }
-                .to_tokens(&mut res);
             } else {
-                quote! {
-                    v if pareg::has_any_key!(v, #spl, #ors) => Ok(Self::#ident(
-                        pareg::val_arg(v, #spl)?
-                    )),
+                if let Some(p) = conf.parser {
+                    quote! {
+                        v if pareg::has_any_key!(v, #spl, #ors) => {
+                            let v = pareg::val_arg::<&str>(v, #spl)?;
+                            let r: pareg::Result<_> = (#p)(v);
+                            Ok(Self::#ident(r?))
+                        },
+                    }
+                    .to_tokens(&mut res);
+                } else {
+                    quote! {
+                        v if pareg::has_any_key!(v, #spl, #ors) => {
+                            Ok(Self::#ident(
+                                pareg::val_arg(v, #spl)?
+                            ))
+                        },
+                    }
+                    .to_tokens(&mut res);
                 }
-                .to_tokens(&mut res);
             }
         }
     }
@@ -208,6 +241,7 @@ impl FromArgConfig {
                             res.split = Some(chr.value());
                         }
                         "default" => res.default = Some(*ass.right),
+                        "parser" => res.parser = Some(*ass.right),
                         _ => {
                             return Error::msg_span(
                                 id.span(),
