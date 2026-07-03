@@ -103,6 +103,7 @@ impl ArgErrCtx {
     /// Mostly useful internaly in pareg.
     pub fn add_args(&mut self, args: Vec<String>, idx: usize) {
         if !args.is_empty()
+            && self.args.len() > self.error_idx
             && self.args[self.error_idx].len() != args[idx].len()
             && let Some(shift) = args[idx].find(&self.args[self.error_idx])
         {

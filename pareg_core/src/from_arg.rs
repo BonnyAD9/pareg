@@ -30,6 +30,11 @@ pub trait FromArg<'a>: Sized {
     /// assert_eq!(5, i32::from_arg("5").unwrap());
     /// ```
     fn from_arg(arg: &'a str) -> Result<Self>;
+
+    /// Same as [`FromArg::from_arg`], but accepts os_str.
+    fn from_os_arg(arg: &'a OsStr) -> Result<Self> {
+        Self::from_arg(arg.to_str().ok_or(ArgError::invalid_unicode(arg))?)
+    }
 }
 
 /// Default implementation for [`FromArg`] for types that implement [`FromStr`]
@@ -48,8 +53,7 @@ where
 impl_all! { impl<'a> FromArg<'a>:
     u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, f32, f64, usize, isize,
     bool, char, String, PathBuf, OsString, IpAddr, SocketAddr, Ipv4Addr,
-    Ipv6Addr, SocketAddrV4, SocketAddrV6,
-    => {
+    Ipv6Addr, SocketAddrV4, SocketAddrV6 => {
         #[inline(always)]
         fn from_arg(arg: &'a str) -> Result<Self> {
             Self::from_str(arg).map_err(|e| {
@@ -82,8 +86,8 @@ impl<'a> FromArg<'a> for &'a OsStr {
     }
 }
 
-impl_all! {
-    impl<'a> FromArg<'a>: Arc<str>, Rc<str>, Cow<'a, str> => {
+impl_all! { impl<'a> FromArg<'a>:
+    Arc<str>, Rc<str>, Cow<'a, str> => {
         #[inline(always)]
         fn from_arg(arg: &'a str) -> Result<Self> {
             Ok(arg.into())

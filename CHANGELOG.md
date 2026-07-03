@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## future
+### Breaking changes
+- Some methods on `Pareg` and `ParegRef` now return the inner type instead of
+  `&str`. This is most notably the method `next`. Instead of `next` you can now
+  use `next_str` to get the `&str`.
+- `ArgInto` now takes `self` as reference.
+- `ParegRef` uses `ArgInto` as it string type constraint.
+- `ByRef` has been removed.
+- `FromArgs` moved its string type generic to the method instead of the trait
+  and the string type is now constrained with `ArgInto`.
+
+### New features
+- Pareg can now parse directly from `OsStr`.
+- New method `Pareg::args_os`.
+- New type `LossyString`.
+- New function `arg_to_string_lossy`.
+
+### Changes
+- `Pareg` is now generic over its string type.
+- `FromArg` now has new method `from_os_arg` which has default implementation.
+- New error kind `InvalidUnicode`.
+
+### Fixes
+- Fix panic when updating error message without arguments.
+
 ## v0.12.1
 ### New features
 - Add new trait `FromArgs` for parsing multiple arguments.

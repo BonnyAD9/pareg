@@ -26,7 +26,7 @@ fn start() -> Result<()> {
     let mut _output = String::new();
     let mut _num_pair = (0, 0);
 
-    while let Some(arg) = args.next() {
+    while let Some(arg) = args.next_str() {
         match arg {
             v if starts_any!(v, "--color=", "--colour=") => {
                 _enable_color = args.cur_val('=')?;

@@ -97,8 +97,8 @@ fn derive_from_args_struct(
     res.extend(quote! { Ok(Self { #names }) });
 
     Ok(quote! {
-        impl<'a, S: AsRef<str>> pareg::FromArgs<'a, S> for #ident {
-            fn parse_args(args: &mut pareg::ParegRef<'a, S>)
+        impl<'a> pareg::FromArgs<'a> for #ident {
+            fn parse_args<S: pareg::ArgInto<'a>>(args: &mut pareg::ParegRef<'a, S>)
                 -> pareg::Result<Self>
             {
                 #res
@@ -188,7 +188,7 @@ fn match_args<'a>(
     catch_arms(&mut branches, cfg, unnamed);
 
     res.extend(quote! {
-        while let Some(arg) = args.next() {
+        while let Some(arg) = args.next_str() {
             match arg {
                 #branches
             }

@@ -163,13 +163,8 @@ pub fn test_from_args() {
         input2: PathBuf,
     }
 
-    let mut args = Pareg::new(vec![
-        "-o".into(),
-        "test.png".into(),
-        "-i".into(),
-        "img.png".into(),
-        "img2.png".into(),
-    ]);
+    let mut args =
+        Pareg::new(vec!["-o", "test.png", "-i", "img.png", "img2.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("test.png"));
@@ -178,8 +173,7 @@ pub fn test_from_args() {
     assert_eq!(parsed.verbose, false);
     assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args =
-        Pareg::new(vec!["-v".into(), "img2.png".into(), "img3.png".into()]);
+    let mut args = Pareg::new(vec!["-v", "img2.png", "img3.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -188,11 +182,7 @@ pub fn test_from_args() {
     assert_eq!(parsed.verbose, true);
     assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args = Pareg::new(vec![
-        "--input2".into(),
-        "img2.png".into(),
-        "img1.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["--input2", "img2.png", "img1.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -201,12 +191,7 @@ pub fn test_from_args() {
     assert_eq!(parsed.verbose, false);
     assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args = Pareg::new(vec![
-        "--input2".into(),
-        "img2.png".into(),
-        "-i".into(),
-        "img1.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["--input2", "img2.png", "-i", "img1.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -215,27 +200,17 @@ pub fn test_from_args() {
     assert_eq!(parsed.verbose, false);
     assert!(!HELPED.load(atomic::Ordering::Relaxed));
 
-    let mut args = Pareg::new(vec!["-h".into(), "img.png".into()]);
+    let mut args = Pareg::new(vec!["-h", "img.png"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec![
-        "-h".into(),
-        "img.png".into(),
-        "img2.png".into(),
-        "img3.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-h", "img.png", "img2.png", "img3.png"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec![
-        "-h".into(),
-        "img.png".into(),
-        "img2.png".into(),
-        "-i".into(),
-        "img3.png".into(),
-    ]);
+    let mut args =
+        Pareg::new(vec!["-h", "img.png", "img2.png", "-i", "img3.png"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-h".into(), "--lol".into()]);
+    let mut args = Pareg::new(vec!["-h", "--lol"]);
     assert!(args.next_sub::<Args>().is_err());
     assert!(HELPED.load(atomic::Ordering::Relaxed));
 }
@@ -253,13 +228,8 @@ pub fn test_from_args_collect() {
         inputs: Vec<PathBuf>,
     }
 
-    let mut args = Pareg::new(vec![
-        "-o".into(),
-        "test.png".into(),
-        "-i".into(),
-        "img.png".into(),
-        "img2.png".into(),
-    ]);
+    let mut args =
+        Pareg::new(vec!["-o", "test.png", "-i", "img.png", "img2.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("test.png"));
@@ -269,8 +239,7 @@ pub fn test_from_args_collect() {
     );
     assert_eq!(parsed.verbose, false);
 
-    let mut args =
-        Pareg::new(vec!["-v".into(), "img2.png".into(), "img3.png".into()]);
+    let mut args = Pareg::new(vec!["-v", "img2.png", "img3.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -280,14 +249,10 @@ pub fn test_from_args_collect() {
     );
     assert_eq!(parsed.verbose, true);
 
-    let mut args = Pareg::new(vec!["img.png".into()]);
+    let mut args = Pareg::new(vec!["img.png"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec![
-        "img.png".into(),
-        "img2.png".into(),
-        "img3.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["img.png", "img2.png", "img3.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -301,12 +266,7 @@ pub fn test_from_args_collect() {
     );
     assert_eq!(parsed.verbose, false);
 
-    let mut args = Pareg::new(vec![
-        "img.png".into(),
-        "img2.png".into(),
-        "-i".into(),
-        "img3.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["img.png", "img2.png", "-i", "img3.png"]);
     let parsed: Args = args.next_sub().unwrap();
 
     assert_eq!(parsed.output, PathBuf::from("output.png"));
@@ -320,15 +280,10 @@ pub fn test_from_args_collect() {
     );
     assert_eq!(parsed.verbose, false);
 
-    let mut args = Pareg::new(vec!["--lol".into()]);
+    let mut args = Pareg::new(vec!["--lol"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec![
-        "-o".into(),
-        "in.png".into(),
-        "-o".into(),
-        "in2.png".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-o", "in.png", "-o", "in2.png"]);
     assert!(args.next_sub::<Args>().is_err());
 }
 
@@ -343,17 +298,17 @@ pub fn test_from_args_option() {
         input: Option<Vec<String>>,
     }
 
-    let mut args = Pareg::new(vec!["-v".into(), "true".into()]);
+    let mut args = Pareg::new(vec!["-v", "true"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, Some(true));
     assert_eq!(parsed.input, None);
 
-    let mut args = Pareg::new(vec!["-v".into(), "false".into()]);
+    let mut args = Pareg::new(vec!["-v", "false"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, Some(false));
     assert_eq!(parsed.input, None);
 
-    let mut args = Pareg::new(vec!["one".into(), "two".into()]);
+    let mut args = Pareg::new(vec!["one", "two"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.verbose, None);
     assert_eq!(
@@ -386,35 +341,20 @@ pub fn test_from_args_check() {
         extension: String,
     }
 
-    let mut args = Pareg::new(vec![
-        "-m".into(),
-        "mode2".into(),
-        "-e".into(),
-        "lol".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-m", "mode2", "-e", "lol"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode2);
     assert_eq!(parsed.extension, "lol");
 
-    let mut args = Pareg::new(vec![
-        "-m".into(),
-        "mode3".into(),
-        "-e".into(),
-        "lo2".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-m", "mode3", "-e", "lo2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode3);
     assert_eq!(parsed.extension, "lo2");
 
-    let mut args = Pareg::new(vec![
-        "-m".into(),
-        "mode3".into(),
-        "-e".into(),
-        "lol".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-m", "mode3", "-e", "lol"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-e".into(), "lol".into()]);
+    let mut args = Pareg::new(vec!["-e", "lol"]);
     assert!(args.next_sub::<Args>().is_err());
 }
 
@@ -439,42 +379,32 @@ pub fn test_from_args_otherwise() {
         extension: Option<String>,
     }
 
-    let mut args = Pareg::new(vec!["-e".into(), "lol".into()]);
+    let mut args = Pareg::new(vec!["-e", "lol"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode1);
     assert_eq!(parsed.extension, Some("lol".into()));
 
-    let mut args = Pareg::new(vec![
-        "-m".into(),
-        "mode2".into(),
-        "-e".into(),
-        "lol".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-m", "mode2", "-e", "lol"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode2);
     assert_eq!(parsed.extension, Some("lol".to_string()));
 
-    let mut args = Pareg::new(vec![
-        "-m".into(),
-        "mode3".into(),
-        "-e".into(),
-        "lo2".into(),
-    ]);
+    let mut args = Pareg::new(vec!["-m", "mode3", "-e", "lo2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode3);
     assert_eq!(parsed.extension, Some("lo2".to_string()));
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::<&str>::new(vec![]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode1);
     assert_eq!(parsed.extension, None);
 
-    let mut args = Pareg::new(vec!["-m".into(), "mode2".into()]);
+    let mut args = Pareg::new(vec!["-m", "mode2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert_eq!(parsed.mode, Mode::Mode2);
     assert_eq!(parsed.extension, None);
 
-    let mut args = Pareg::new(vec!["-m".into(), "mode3".into()]);
+    let mut args = Pareg::new(vec!["-m", "mode3"]);
     assert!(args.next_sub::<Args>().is_err());
 }
 
@@ -488,22 +418,22 @@ pub fn test_from_args_conflict() {
         prop2: bool,
     }
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::<&str>::new(vec![]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(!parsed.prop2);
 
-    let mut args = Pareg::new(vec!["--p1".into()]);
+    let mut args = Pareg::new(vec!["--p1"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(parsed.prop1);
     assert!(!parsed.prop2);
 
-    let mut args = Pareg::new(vec!["--p2".into()]);
+    let mut args = Pareg::new(vec!["--p2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(parsed.prop2);
 
-    let mut args = Pareg::new(vec!["--p1".into(), "--p2".into()]);
+    let mut args = Pareg::new(vec!["--p1", "--p2"]);
     assert!(args.next_sub::<Args>().is_err());
 }
 
@@ -520,40 +450,40 @@ pub fn test_from_args_mutual_conflict() {
         prop3: bool,
     }
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::<&str>::new(vec![]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(!parsed.prop2);
     assert!(!parsed.prop3);
 
-    let mut args = Pareg::new(vec!["-1".into()]);
+    let mut args = Pareg::new(vec!["-1"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(parsed.prop1);
     assert!(!parsed.prop2);
     assert!(!parsed.prop3);
 
-    let mut args = Pareg::new(vec!["-2".into()]);
+    let mut args = Pareg::new(vec!["-2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(parsed.prop2);
     assert!(!parsed.prop3);
 
-    let mut args = Pareg::new(vec!["-3".into()]);
+    let mut args = Pareg::new(vec!["-3"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(!parsed.prop2);
     assert!(parsed.prop3);
 
-    let mut args = Pareg::new(vec!["-1".into(), "-2".into()]);
+    let mut args = Pareg::new(vec!["-1", "-2"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-2".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-2", "-3"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-1".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-1", "-3"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-1".into(), "-2".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-1", "-2", "-3"]);
     assert!(args.next_sub::<Args>().is_err());
 }
 
@@ -567,20 +497,20 @@ pub fn test_from_args_require() {
         prop2: bool,
     }
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::<&str>::new(vec![]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(!parsed.prop2);
 
-    let mut args = Pareg::new(vec!["--p1".into()]);
+    let mut args = Pareg::new(vec!["--p1"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["--p2".into()]);
+    let mut args = Pareg::new(vec!["--p2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(parsed.prop2);
 
-    let mut args = Pareg::new(vec!["--p1".into(), "--p2".into()]);
+    let mut args = Pareg::new(vec!["--p1", "--p2"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(parsed.prop1);
     assert!(parsed.prop2);
@@ -599,31 +529,31 @@ pub fn test_from_args_mutual_require() {
         prop3: bool,
     }
 
-    let mut args = Pareg::new(vec![]);
+    let mut args = Pareg::<&str>::new(vec![]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(!parsed.prop1);
     assert!(!parsed.prop2);
     assert!(!parsed.prop3);
 
-    let mut args = Pareg::new(vec!["-1".into()]);
+    let mut args = Pareg::new(vec!["-1"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-2".into()]);
+    let mut args = Pareg::new(vec!["-2"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-3".into()]);
+    let mut args = Pareg::new(vec!["-3"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-1".into(), "-2".into()]);
+    let mut args = Pareg::new(vec!["-1", "-2"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-2".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-2", "-3"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-1".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-1", "-3"]);
     assert!(args.next_sub::<Args>().is_err());
 
-    let mut args = Pareg::new(vec!["-1".into(), "-2".into(), "-3".into()]);
+    let mut args = Pareg::new(vec!["-1", "-2", "-3"]);
     let parsed: Args = args.next_sub().unwrap();
     assert!(parsed.prop1);
     assert!(parsed.prop2);

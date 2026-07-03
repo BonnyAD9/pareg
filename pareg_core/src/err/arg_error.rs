@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Display, ops::RangeBounds};
+use std::{borrow::Cow, ffi::OsStr, fmt::Display, ops::RangeBounds};
 
 use crate::{ArgErrKind, ColorMode};
 
@@ -114,6 +114,14 @@ impl ArgError {
         msg: impl Into<Cow<'static, str>>,
     ) -> Self {
         Self::from_msg(ArgErrKind::InvalidNumberOfArguments, msg, "")
+    }
+
+    pub fn invalid_unicode(arg: impl AsRef<OsStr>) -> Self {
+        Self::from_msg(
+            ArgErrKind::InvalidUnicode,
+            "",
+            arg.as_ref().to_string_lossy().into_owned(),
+        )
     }
 
     pub fn kind(&self) -> &ArgErrKind {

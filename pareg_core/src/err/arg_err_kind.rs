@@ -23,6 +23,8 @@ pub enum ArgErrKind {
     TooManyArguments,
     #[error("Invalid number of arguments.")]
     InvalidNumberOfArguments,
+    #[error("Argument contains invalid unicode.")]
+    InvalidUnicode,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }

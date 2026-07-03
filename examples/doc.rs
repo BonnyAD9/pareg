@@ -30,7 +30,7 @@ impl Args {
             colors: ColorMode::Auto,
         };
 
-        while let Some(arg) = args.next() {
+        while let Some(arg) = args.next_str() {
             match arg {
                 // when there is the argument `count`, parse the next value
                 "-c" | "--count" => res.count = args.next_arg()?,

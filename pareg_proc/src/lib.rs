@@ -147,19 +147,19 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///     verbose: bool,
 /// }
 ///
-/// let mut args = Pareg::new(vec!["-o".into(), "test.png".into()]);
+/// let mut args = Pareg::new(vec!["-o", "test.png"]);
 /// let parsed: Args = args.next_sub().unwrap();
 ///
 /// assert_eq!(parsed.output, PathBuf::from("test.png"));
 /// assert_eq!(parsed.verbose, false);
 ///
-/// let mut args = Pareg::new(vec!["-v".into()]);
+/// let mut args = Pareg::new(vec!["-v"]);
 /// let parsed: Args = args.next_sub().unwrap();
 ///
 /// assert_eq!(parsed.output, PathBuf::from("output.png"));
 /// assert_eq!(parsed.verbose, true);
 ///
-/// let mut args = Pareg::new(vec!["--lol".into()]);
+/// let mut args = Pareg::new(vec!["--lol"]);
 ///
 /// assert!(args.next_sub::<Args>().is_err());
 /// ```

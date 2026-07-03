@@ -2,9 +2,9 @@ use std::{borrow::Cow, cell::Cell, ops::RangeBounds, range::Range};
 
 use crate::{
     ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromArgs, FromRead,
-    Result, arg_list, bool_arg, key_arg, key_mval_arg, key_val_arg, mval_arg,
-    opt_bool_arg, split_arg, try_set_arg, try_set_arg_with, utils::get_range,
-    val_arg,
+    Result, arg_list, arg_to_string_lossy, bool_arg, key_arg, key_mval_arg,
+    key_val_arg, mval_arg, opt_bool_arg, split_arg, try_set_arg,
+    try_set_arg_with, utils::get_range, val_arg,
 };
 
 /// Helper for parsing arguments.
@@ -21,12 +21,12 @@ use crate::{
 /// calling mutable functions while there are immutable references to the
 /// original arguments.
 #[derive(Debug)]
-pub struct ParegRef<'a, S: AsRef<str> = String> {
+pub struct ParegRef<'a, S: ArgInto<'a> = String> {
     args: &'a [S],
     cur: Cow<'a, Cell<usize>>,
 }
 
-impl<'a, S: AsRef<str>> ParegRef<'a, S> {
+impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// Creates referenced pareg from arguments and current index.
     #[inline]
     pub fn new(args: &'a [S], cur: impl Into<Cow<'a, Cell<usize>>>) -> Self {
@@ -50,22 +50,30 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
         self.cur = Cow::Owned(self.cur.as_ref().clone());
     }
 
+    /// Get the next string in the arguments.
+    ///
+    /// Note that this may return empty string if the underlaying conversion to
+    /// string fails (e.g. when converting from OsString with invalid unicode)
+    pub fn next_str(&mut self) -> Option<&'a str> {
+        self.next().map(|a| a.arg_into().unwrap_or_default())
+    }
+
     /// Get the last returned argument.
     #[inline]
-    pub fn cur(&self) -> Option<&'a str> {
+    pub fn cur(&self) -> Option<&'a S> {
         let idx = self.cur.get();
-        (idx != 0).then(|| self.args[idx - 1].as_ref())
+        (idx != 0).then(|| &self.args[idx - 1])
     }
 
     /// Get argument at the given index.
     #[inline]
-    pub fn get(&self, idx: usize) -> Option<&'a str> {
-        (idx < self.args.len()).then(|| self.args[idx].as_ref())
+    pub fn get(&self, idx: usize) -> Option<&'a S> {
+        (idx < self.args.len()).then(|| &self.args[idx])
     }
 
     /// Get value that will be returned with the next call to `next`.
     #[inline]
-    pub fn peek(&self) -> Option<&'a str> {
+    pub fn peek(&self) -> Option<&'a S> {
         self.get(self.cur.get())
     }
 
@@ -90,20 +98,20 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// Jump so that the argument at index `idx` is the next argument. Gets the
     /// argument at `idx - 1`.
     #[inline]
-    pub fn jump(&mut self, idx: usize) -> Option<&'a str> {
+    pub fn jump(&mut self, idx: usize) -> Option<&'a S> {
         self.cur.set(idx.min(self.args.len()));
         self.cur()
     }
 
     /// Equivalent to calling next `cnt` times.
     #[inline]
-    pub fn skip_args(&mut self, cnt: usize) -> Option<&'a str> {
+    pub fn skip_args(&mut self, cnt: usize) -> Option<&'a S> {
         self.jump(self.cur.get() + cnt)
     }
 
     /// Skip all remaining arguments and return the last.
     #[inline]
-    pub fn skip_all(&mut self) -> Option<&'a str> {
+    pub fn skip_all(&mut self) -> Option<&'a S> {
         self.jump(self.args.len())
     }
 
@@ -462,13 +470,13 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
 
     /// Leave parsing of the next arguments to the `FromArgs` implementation of
     /// `T`.
-    pub fn next_sub<T: FromArgs<'a, S>>(&mut self) -> Result<T> {
+    pub fn next_sub<T: FromArgs<'a>>(&mut self) -> Result<T> {
         T::parse_args(self)
     }
 
     /// Leave the parsing of the current and following arguments to the
     /// `FromArgs` implementation of `T`.
-    pub fn cur_sub<T: FromArgs<'a, S>>(&mut self) -> Result<T> {
+    pub fn cur_sub<T: FromArgs<'a>>(&mut self) -> Result<T> {
         self.cur.set(self.cur.get().saturating_sub(1));
         self.next_sub()
     }
@@ -476,11 +484,13 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// Creates pretty error that the last argument (cur) is unknown.
     #[inline]
     pub fn err_unknown_argument(&self) -> ArgError {
-        let arg = self.cur().unwrap_or_default();
-        let long_message =
-            self.cur().map(|a| format!("Unknown argument `{a}`").into());
+        let arg = self.cur().map(arg_to_string_lossy).unwrap_or_default();
+        let long_message = self
+            .cur()
+            .is_some()
+            .then(|| format!("Unknown argument `{arg}`").into());
         ArgError::new(ArgErrCtx {
-            args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
+            args: self.args.iter().map(arg_to_string_lossy).collect(),
             error_idx: self.cur.get().saturating_sub(1),
             error_span: (0..arg.len()).into(),
             inline_msg: Some("Unknown argument.".into()),
@@ -511,9 +521,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     pub fn err_cur_too_many_arguments(&self) -> ArgError {
         self.map_err(ArgError::too_many_arguments(
             "Argument specified too many times.",
-            self.args[self.cur.get().saturating_sub(1)]
-                .as_ref()
-                .to_string(),
+            arg_to_string_lossy(&self.args[self.cur.get().saturating_sub(1)]),
         ))
     }
 
@@ -521,7 +529,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// invalid value.
     #[inline]
     pub fn err_invalid_span(&self, span: impl RangeBounds<usize>) -> ArgError {
-        let value = self.cur().unwrap_or_default();
+        let value = self.cur().map(arg_to_string_lossy).unwrap_or_default();
         let mut span = get_range(span);
         if span.start > value.len() || span.end > value.len() {
             span = Range::from(0..value.len());
@@ -536,16 +544,14 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     /// Creates pretty error that there should be more arguments but there are
     /// no more arguments.
     pub fn err_no_more_arguments(&self) -> ArgError {
-        let pos = self.args.last().map_or(0, |a| a.as_ref().len());
-        let long_message = self.args.last().map(|a| {
-            format!(
-                "Expected more arguments after the argument `{}`.",
-                a.as_ref()
-            )
-            .into()
+        let last = self.args.last().map(arg_to_string_lossy);
+        let pos = last.as_deref().map_or(0, |a| a.len());
+        let long_message = last.map(|a| {
+            format!("Expected more arguments after the argument `{a}`.",)
+                .into()
         });
         ArgError::new(ArgErrCtx {
-            args: self.args.iter().map(|a| a.as_ref().to_string()).collect(),
+            args: self.args.iter().map(arg_to_string_lossy).collect(),
             error_idx: self.args.len().saturating_sub(1),
             error_span: (pos..pos).into(),
             inline_msg: Some("Expected more arguments.".into()),
@@ -560,7 +566,7 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     #[inline(always)]
     pub fn map_err(&self, err: ArgError) -> ArgError {
         err.add_args(
-            self.args.iter().map(|a| a.as_ref().to_string()).collect(),
+            self.args.iter().map(arg_to_string_lossy).collect(),
             self.cur.get().saturating_sub(1),
         )
     }
@@ -574,14 +580,14 @@ impl<'a, S: AsRef<str>> ParegRef<'a, S> {
     }
 }
 
-impl<'a, T: AsRef<str>> Iterator for ParegRef<'a, T> {
-    type Item = &'a str;
+impl<'a, T: ArgInto<'a>> Iterator for ParegRef<'a, T> {
+    type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cur = self.cur.get();
         (cur < self.args.len()).then(|| {
             self.cur.set(cur + 1);
-            self.args[cur].as_ref()
+            &self.args[cur]
         })
     }
 
@@ -595,7 +601,7 @@ impl<'a, T: AsRef<str>> Iterator for ParegRef<'a, T> {
     }
 
     fn last(self) -> Option<Self::Item> {
-        self.remaining().last().map(|s| s.as_ref())
+        self.remaining().last()
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -603,12 +609,12 @@ impl<'a, T: AsRef<str>> Iterator for ParegRef<'a, T> {
         let new = cur + n;
         (new < self.args.len()).then(|| {
             self.cur.set(new);
-            self.args[new].as_ref()
+            &self.args[new]
         })
     }
 }
 
-impl<T: AsRef<str>> Clone for ParegRef<'_, T> {
+impl<'a, T: ArgInto<'a>> Clone for ParegRef<'a, T> {
     /// Note that the clones will not affect the original pareg even if the
     /// original [`ParegRef`] did.
     fn clone(&self) -> Self {
