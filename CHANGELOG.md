@@ -25,6 +25,9 @@
 ### Fixes
 - Fix panic when updating error message without arguments.
 
+### Documentation
+- Improve documentation of `FromArg` derive macro.
+
 ## v0.12.1
 ### New features
 - Add new trait `FromArgs` for parsing multiple arguments.
