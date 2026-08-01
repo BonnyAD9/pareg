@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.13.0
 ### Breaking changes
 - Some methods on `Pareg` and `ParegRef` now return the inner type instead of
   `&str`. This is most notably the method `next`. Instead of `next` you can now
