@@ -375,3 +375,26 @@ pub fn arg_list<T: FromRead>(arg: &str, sep: &str) -> Result<Vec<T>> {
         reader.expect(sep)?;
     }
 }
+
+/// Checks that the argument has the given prefix and parses the suffix.
+///
+/// # Example
+/// ```
+/// use pareg_core::*;
+///
+/// assert_eq!(5, postfix_arg::<i32>("-D", "-D5").unwrap());
+/// assert!(postfix_arg::<i32>("-D", "-E5").is_err());
+/// ```
+pub fn suffix_arg<'a, T: FromArg<'a>>(
+    prefix: &str,
+    arg: &'a str,
+) -> Result<T> {
+    arg.strip_prefix(prefix)
+        .ok_or_else(|| {
+            ArgError::failed_to_parse(
+                format!("Expected the prefix `{prefix}`."),
+                arg,
+            )
+        })?
+        .arg_into()
+}

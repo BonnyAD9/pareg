@@ -990,6 +990,29 @@ impl<S> Pareg<S> {
         self.inner().cur_sub()
     }
 
+    /// Check that the next argument has the given prefix and parse the suffix.
+    pub fn next_suffix<'a, T: FromArg<'a>>(
+        &'a mut self,
+        prefix: &str,
+    ) -> Result<T>
+    where
+        S: ArgInto<'a>,
+    {
+        self.inner().next_suffix(prefix)
+    }
+
+    /// Check that the current argument has the given prefix and parse the
+    /// suffix.
+    pub fn cur_suffix<'a, T: FromArg<'a>>(
+        &'a mut self,
+        prefix: &str,
+    ) -> Result<T>
+    where
+        S: ArgInto<'a>,
+    {
+        self.inner().cur_suffix(prefix)
+    }
+
     /// Creates pretty error that the last argument (cur) is unknown.
     #[inline]
     pub fn err_unknown_argument<'a>(&'a self) -> ArgError

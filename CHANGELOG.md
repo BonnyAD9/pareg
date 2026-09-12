@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## Future
+### New features
+- New function `suffix_arg` and methods `next_suffix` and `cur_suffix` to check
+  the prefix of the argument and parse its suffix.
+
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
 

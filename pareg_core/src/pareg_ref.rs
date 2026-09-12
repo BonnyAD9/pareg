@@ -3,7 +3,7 @@ use std::{borrow::Cow, cell::Cell, ops::RangeBounds, range::Range};
 use crate::{
     ArgErrCtx, ArgErrKind, ArgError, ArgInto, FromArg, FromArgs, FromRead,
     Result, arg_list, arg_to_string_lossy, bool_arg, key_arg, key_mval_arg,
-    key_val_arg, mval_arg, opt_bool_arg, split_arg, try_set_arg,
+    key_val_arg, mval_arg, opt_bool_arg, split_arg, suffix_arg, try_set_arg,
     try_set_arg_with, utils::get_range, val_arg,
 };
 
@@ -479,6 +479,20 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     pub fn cur_sub<T: FromArgs<'a>>(&mut self) -> Result<T> {
         self.cur.set(self.cur.get().saturating_sub(1));
         self.next_sub()
+    }
+
+    /// Check that the next argument has the given prefix and parse the
+    /// suffix.
+    pub fn next_suffix<T: FromArg<'a>>(&mut self, prefix: &str) -> Result<T> {
+        let arg = self.next_arg()?;
+        self.map_res(suffix_arg(prefix, arg))
+    }
+
+    /// Check that the current argument has the given prefix and parse the
+    /// suffix.
+    pub fn cur_suffix<T: FromArg<'a>>(&mut self, prefix: &str) -> Result<T> {
+        let arg = self.cur_arg()?;
+        self.map_res(suffix_arg(prefix, arg))
     }
 
     /// Creates pretty error that the last argument (cur) is unknown.
