@@ -246,7 +246,7 @@ impl<S> Pareg<S> {
     #[inline]
     pub fn next_manual<'a, T: 'a>(
         &'a mut self,
-        f: impl Fn(&'a str) -> Result<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
     ) -> Result<T>
     where
         S: ArgInto<'a>,
@@ -277,7 +277,7 @@ impl<S> Pareg<S> {
     #[inline]
     pub fn cur_manual<'a, T: 'a>(
         &'a self,
-        f: impl Fn(&'a str) -> Result<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
     ) -> Result<T>
     where
         S: ArgInto<'a>,

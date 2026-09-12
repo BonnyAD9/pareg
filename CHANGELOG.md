@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Future
+### Changes
+- `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
+
 ## v0.13.0
 ### Breaking changes
 - Some methods on `Pareg` and `ParegRef` now return the inner type instead of

@@ -144,7 +144,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     #[inline]
     pub fn next_manual<T>(
         &mut self,
-        f: impl Fn(&'a str) -> Result<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
     ) -> Result<T> {
         let a = self.next_arg()?;
         self.map_res(f(a))
@@ -158,7 +158,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// `pareg.map_err(foo(pareg.cur()))`.
     pub fn cur_manual<T>(
         &self,
-        f: impl Fn(&'a str) -> Result<T>,
+        f: impl FnOnce(&'a str) -> Result<T>,
     ) -> Result<T> {
         self.map_res(f(self.cur_arg()?))
     }
