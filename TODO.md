@@ -1,4 +1,3 @@
 - Fix macro implementation using read.
-- From args custom error message on check.
 - From args custom parser for field.
 - More usable reader (read_until, read_while).

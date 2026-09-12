@@ -6,6 +6,8 @@
   the prefix of the argument and parse its suffix.
 - New constructors `ParegRef::new_detached` and `ParegRef::new_attached` for
   simpler construction.
+- `FromArgs` derive macro supports seting custom error message for check
+  conditions with `check_msg`.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.

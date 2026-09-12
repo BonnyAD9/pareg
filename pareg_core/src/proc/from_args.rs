@@ -23,6 +23,7 @@ struct FieldConfig {
     default: Option<Option<TokenStream>>,
     names: Vec<LitStr>,
     check: Option<TokenStream>,
+    check_msg: Option<TokenStream>,
     otherwise: Option<TokenStream>,
     no_rewrite: Option<bool>,
     conflict: Vec<String>,
@@ -34,7 +35,7 @@ struct FromArgsConfig {
     end_match: Vec<TokenStream>,
     positional_guard: bool,
     no_rewrite: bool,
-    check: Vec<TokenStream>,
+    check: Vec<(TokenStream, Option<TokenStream>)>,
     conflict: Vec<Vec<String>>,
     require: Vec<Vec<String>>,
 }
@@ -473,7 +474,10 @@ fn validate_field_check<'a>(
         };
 
         let name = field.name(false);
-        let msg = format!("Argument `{name}` is allowed only if `{check}`.");
+        let msg = field.check_msg.clone().unwrap_or_else(|| {
+            format!("Argument `{name}` is allowed only if `{check}`.")
+                .into_token_stream()
+        });
 
         res.extend(quote! {
             if #prefix && !(#check) {
@@ -506,8 +510,10 @@ fn validate_field_otherwise<'a>(
 }
 
 fn validate_check(res: &mut TokenStream, cfg: &FromArgsConfig) {
-    for c in &cfg.check {
-        let msg = format!("The check failed: `{c}`");
+    for (c, msg) in &cfg.check {
+        let msg = msg.clone().unwrap_or_else(|| {
+            format!("The check failed: `{c}`").into_token_stream()
+        });
         res.extend(quote! {
             if !(#c) {
                 return args.err_invalid().hint(#msg).err();
@@ -688,6 +694,7 @@ impl FieldConfig {
         let mut no_rewrite = None;
         let mut option = false;
         let mut check = None;
+        let mut check_msg = None;
         let mut otherwise = None;
         let mut conflict = vec![];
         let mut require = vec![];
@@ -728,6 +735,9 @@ impl FieldConfig {
                         }
                         "check" => {
                             check = Some(a.right.into_token_stream());
+                        }
+                        "check_msg" => {
+                            check_msg = Some(a.right.into_token_stream());
                         }
                         "otherwise" => {
                             otherwise = Some(a.right.into_token_stream());
@@ -785,6 +795,7 @@ impl FieldConfig {
             no_rewrite,
             option,
             check,
+            check_msg,
             otherwise,
             conflict,
             require,
@@ -824,7 +835,17 @@ impl FromArgsConfig {
                     let id: Ident = parse2(a.left.into_token_stream())?;
                     match id.to_string().as_str() {
                         "check" => {
-                            check.push(a.right.into_token_stream());
+                            check.push((a.right.into_token_stream(), None));
+                        }
+                        "check_msg" => {
+                            let Some(last) = check.last_mut() else {
+                                return Error::msg_span(
+                                    id.span(),
+                                    "There is no check before this message.",
+                                )
+                                .err();
+                            };
+                            last.1 = Some(a.right.into_token_stream());
                         }
                         "conflict" => {
                             let idents = parse2::<ExprArray>(

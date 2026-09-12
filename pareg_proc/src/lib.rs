@@ -115,6 +115,12 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   available either as options or as the fields themself depending on the
 ///   field configuration. The condition is evaluated only after all arguments
 ///   have been successfully parsed.
+/// - `check_msg = <expr>`: Message to show when the check fails. This field is
+///   available as not option reference for this message and other fields are
+///   available either as options or as the fields themself depending on the
+///   field configuration. The expression is evaluated only if the condition
+///   fails. The expression must evaluate to something that implements
+///   `Into<Cow<'static, str>>`.
 /// - `otherwise = <cond>`: If the field is not set, the given condition must
 ///   be true. If it is not true, the parsing will result in error.
 /// - `conflict = [<fields>]`: specifies that the fields are in conflict with
@@ -141,6 +147,9 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `check = <expr>`: Checks the given condition after all arguments have
 ///   been parsed and their conditions succeeded. If the condition is `false`,
 ///   an error is emited.
+/// - `check_msg = <expr>`: Set the error message for the last `check`. The
+///   expression is evaluated only if the check fails and must evaluate to
+///   something that implements `Into<Cow<'static, str>>`.
 /// - `conflict = [<fields>]`: Specify that the given fields are mutually in
 ///   conflict. This means that only one of them may be set. If more of them
 ///   are set, it will result in error.

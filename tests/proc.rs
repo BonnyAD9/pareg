@@ -350,14 +350,18 @@ pub fn test_from_args_check() {
     #[derive(FromArgs)]
     #[from_args(
         check = mode != Some(Mode::Mode3)
-            || extension.as_deref() != Some("lol"))
-    ]
+            || extension.as_deref() != Some("lol"),
+        check_msg = "Mode 3 doesn't support the extension `lol`."
+    )]
     struct Args {
         #[from_args("-m", "--mode", default)]
         mode: Mode,
         #[from_args(
-            "-e", check = matches!(mode, Some(Mode::Mode2 | Mode::Mode3)))
-        ]
+            "-e", check = matches!(mode, Some(Mode::Mode2 | Mode::Mode3)),
+            check_msg = format!(
+                "Extension `{extension}` can be used only with modes 2 and 3."
+            ),
+        )]
         extension: String,
     }
 
