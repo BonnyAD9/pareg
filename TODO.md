@@ -1,5 +1,7 @@
 - Fix macro implementation using read.
 - Make `cur_manual` and `next_manual` take `FnMut`.
 - `postfix_arg`: skip some prefix and parse the postfix. Returns Option
-- `ParegRef::new_detached`
+- `ParegRef::new_detached`.
 - Option to set message verbosity/length.
+- From args custom error message on check.
+- From args custom parser for field.
