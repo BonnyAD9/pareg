@@ -591,10 +591,17 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// [`ParegRef::next_manual`] instead.
     #[inline(always)]
     pub fn map_err(&self, err: ArgError) -> ArgError {
-        err.add_args(
+        let res = err.add_args(
             self.args.iter().map(arg_to_string_lossy).collect(),
             self.cur.get().saturating_sub(1),
-        )
+        );
+
+        #[cfg(feature = "short-errors")]
+        {
+            res.0.show_args = false;
+        }
+
+        res
     }
 
     /// Adds additional information to error in result so that it has better

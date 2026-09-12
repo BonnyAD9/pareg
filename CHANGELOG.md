@@ -9,6 +9,9 @@
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
+- Errors now print the arguments only if they come from `Pareg` or `ParegRef`
+  or if explicitly enabled with `show_args()`.
+- The single field in `Error` is now public.
 
 ## v0.13.0
 ### Breaking changes

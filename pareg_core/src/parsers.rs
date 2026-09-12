@@ -380,10 +380,10 @@ pub fn arg_list<T: FromRead>(arg: &str, sep: &str) -> Result<Vec<T>> {
 ///
 /// # Example
 /// ```
-/// use pareg_core::*;
+/// use pareg_core::suffix_arg;
 ///
-/// assert_eq!(5, postfix_arg::<i32>("-D", "-D5").unwrap());
-/// assert!(postfix_arg::<i32>("-D", "-E5").is_err());
+/// assert_eq!(5, suffix_arg::<i32>("-D", "-D5").unwrap());
+/// assert!(suffix_arg::<i32>("-D", "-E5").is_err());
 /// ```
 pub fn suffix_arg<'a, T: FromArg<'a>>(
     prefix: &str,

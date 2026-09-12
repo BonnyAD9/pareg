@@ -6,7 +6,7 @@ use super::{ArgErrCtx, Result};
 
 /// Errors thrown when parsing arguments.
 #[derive(Debug)]
-pub struct ArgError(Box<ArgErrCtx>);
+pub struct ArgError(pub Box<ArgErrCtx>);
 
 impl ArgError {
     pub fn new(ctx: ArgErrCtx) -> Self {
@@ -131,6 +131,12 @@ impl ArgError {
     pub fn map_ctx(mut self, f: impl FnOnce(&mut ArgErrCtx)) -> Self {
         f(&mut self.0);
         self
+    }
+
+    /// Enables showing arguments in error messages. If disabled, error message
+    /// is printed on single line as any usual error message.
+    pub fn show_args(self) -> Self {
+        self.map_ctx(|c| c.show_args = true)
     }
 }
 

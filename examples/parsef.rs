@@ -30,7 +30,7 @@ fn start() -> Result<()> {
         &mut ip.3
     )?;
 
-    println!("readed: {}.{}.{}.{}/{mask}", ip.0, ip.1, ip.2, ip.3);
+    println!("read: {}.{}.{}.{}/{mask}", ip.0, ip.1, ip.2, ip.3);
 
     Ok(())
 }

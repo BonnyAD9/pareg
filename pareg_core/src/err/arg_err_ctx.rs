@@ -36,6 +36,8 @@ pub struct ArgErrCtx {
     pub color: ColorMode,
     /// Determines whether `error:` is prefixed to the message.
     pub anounce: bool,
+    /// Determines whether the arguments are printed
+    pub show_args: bool,
 }
 
 impl ArgErrCtx {
@@ -50,6 +52,7 @@ impl ArgErrCtx {
             hint: None,
             color: ColorMode::default(),
             anounce: DEFAULT_ANOUNCE,
+            show_args: false,
         }
     }
 
@@ -175,6 +178,10 @@ impl Display for ArgErrCtx {
         if f.sign_plus() {
             color = true;
         }
+        let mut show_args = self.show_args;
+        if let Some(p) = f.precision() {
+            show_args = p > 1;
+        }
 
         let kind_msg = LazyCell::new(|| self.kind.to_string());
         let long_message = self
@@ -182,6 +189,18 @@ impl Display for ArgErrCtx {
             .as_deref()
             .or(self.inline_msg.as_deref())
             .unwrap_or_else(|| &kind_msg);
+
+        if !show_args {
+            if self.anounce {
+                writemc!(f, color, "{'r}error:{'_ bold} {long_message}{'_}")?;
+            } else {
+                writemc!(f, color, "{'bold} {long_message}{'_}")?;
+            }
+            if let Some(h) = &self.hint {
+                writemc!(f, color, " {h}")?;
+            }
+            return Ok(());
+        }
 
         let args = if self.args.is_empty() {
             if self.anounce {
@@ -205,11 +224,7 @@ impl Display for ArgErrCtx {
         let lengths: Vec<_> = args.iter().map(|a| a.chars().count()).collect();
 
         if self.anounce {
-            writemcln!(
-                f,
-                color,
-                "{'r}argument error:{'_ bold} {long_message}{'_}"
-            )?;
+            writemcln!(f, color, "{'r}error:{'_ bold} {long_message}{'_}")?;
         } else {
             writemcln!(f, color, "{'bold}{long_message}{'_}")?;
         }
