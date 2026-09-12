@@ -1,6 +1,4 @@
 - Fix macro implementation using read.
-- `postfix_arg`: skip some prefix and parse the postfix. Returns Option
-- `ParegRef::new_detached`.
 - Option to set message verbosity/length.
 - From args custom error message on check.
 - From args custom parser for field.

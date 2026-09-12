@@ -36,6 +36,18 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
         }
     }
 
+    /// Creates detached pareg reference from arguments and current index.
+    #[inline]
+    pub fn new_detached(args: &'a [S], pos: usize) -> Self {
+        Self::new(args, Cow::Owned(Cell::new(pos)))
+    }
+
+    /// Create new atached pareg reference from arguments and current index.
+    #[inline]
+    pub fn new_atached(args: &'a [S], pos: &'a Cell<usize>) -> Self {
+        Self::new(args, Cow::Borrowed(pos))
+    }
+
     /// Checks if this instance will mutate original [`crate::Pareg`]. If you
     /// don't want to mutate the orignal, you can create clone or call
     /// [`ParegRef::detach`].
