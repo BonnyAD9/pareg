@@ -1,3 +1,4 @@
-- Fix macro implementation using read.
-- From args custom parser for field.
+- FromArgs set (removes optional).
+- FromArgs do = action to do after parsing argument.
+- FromArgs with = custom parser for field.
 - More usable reader (read_until, read_while).

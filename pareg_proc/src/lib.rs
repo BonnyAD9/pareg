@@ -129,6 +129,14 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `require = [<fields>]`: specifies that if this field is set, all of the
 ///   given fields have to be also set. If at least one of them is not set,
 ///   parsing will result in error.
+/// - `set`: Specifies that this field will not be handled as option. This will
+///   make it easier to access it in any other code snippets to within the
+///   FromArgs implementation, but it will place some limitations on the field:
+///     - The type must implement [`Default`] or `default` must be set.
+///     - `no_rewrite` will have no effect on this field.
+///     - `conflict`, `require`, `check` and `otherwise` will all behave as if
+///       this field is always set.
+///     - This has no effect when used with `collect` or `option`.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms

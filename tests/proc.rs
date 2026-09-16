@@ -583,3 +583,23 @@ pub fn test_from_args_mutual_require() {
     assert!(parsed.prop2);
     assert!(parsed.prop3);
 }
+
+pub fn test_from_args_set() {
+    #[derive(FromArgs)]
+    #[from_args(match start {
+        "-h" | "--help" => helped = true,
+    })]
+    struct Args {
+        #[from_args(set)]
+        helped: bool,
+    }
+
+    let mut args = Pareg::<&str>::new(vec![]);
+    assert!(!args.next_sub::<Args>().unwrap().helped);
+
+    let mut args = Pareg::new(vec!["-h"]);
+    assert!(args.next_sub::<Args>().unwrap().helped);
+
+    let mut args = Pareg::new(vec!["--help"]);
+    assert!(args.next_sub::<Args>().unwrap().helped);
+}

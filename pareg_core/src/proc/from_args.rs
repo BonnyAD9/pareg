@@ -28,6 +28,7 @@ struct FieldConfig {
     no_rewrite: Option<bool>,
     conflict: Vec<String>,
     require: Vec<String>,
+    set: bool,
 }
 
 struct FromArgsConfig {
@@ -122,7 +123,7 @@ fn declare_fields<'a>(
 
         id_map.insert(id.to_string(), field);
 
-        if field.collect.is_some() {
+        if field.collect.is_some() || field.set {
             let value = if let Some(Some(d)) = &field.default {
                 d.clone()
             } else {
@@ -469,6 +470,8 @@ fn validate_field_check<'a>(
 
         let prefix = if field.collect.is_some() {
             quote! { !#id.is_empty() }
+        } else if field.set {
+            quote! { true }
         } else {
             quote! { let Some(ref #id) = #id }
         };
@@ -551,7 +554,7 @@ fn extract_fields<'a>(
             continue;
         }
 
-        if field.option {
+        if field.option || field.set {
             continue;
         }
 
@@ -620,7 +623,7 @@ impl FieldConfig {
                 })
             }
         } else {
-            if self.no_rewrite.unwrap_or(cfg.no_rewrite) {
+            if !self.set && self.no_rewrite.unwrap_or(cfg.no_rewrite) {
                 let name = self.name(cur);
                 let msg =
                     format!("The argument `{name}` may be set only once.");
@@ -634,20 +637,26 @@ impl FieldConfig {
                 })
             }
 
-            if self.flag {
-                if cur {
+            let mut set = |t: TokenStream| {
+                if self.set {
                     res.extend(quote! {
-                        #id = Some(#value);
+                        #id = #t;
                     });
                 } else {
                     res.extend(quote! {
-                        #id = Some(true.into());
+                        #id = Some(#t);
                     });
                 }
+            };
+
+            if self.flag {
+                if cur {
+                    set(value);
+                } else {
+                    set(quote! { true.into() })
+                }
             } else {
-                res.extend(quote! {
-                    #id = Some(#value);
-                });
+                set(value);
             }
 
             if self.positional {
@@ -664,6 +673,8 @@ impl FieldConfig {
         let id = &self.ident;
         if self.collect.is_some() {
             quote! { (!#id.is_empty()) }
+        } else if self.set {
+            quote! { true }
         } else {
             quote! { #id.is_some() }
         }
@@ -698,6 +709,7 @@ impl FieldConfig {
         let mut otherwise = None;
         let mut conflict = vec![];
         let mut require = vec![];
+        let mut set = false;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -716,6 +728,7 @@ impl FieldConfig {
                         "no_rewrite" => no_rewrite = Some(true),
                         "rewrite" => no_rewrite = Some(false),
                         "flag" => flag = true,
+                        "set" => set = true,
                         _ => {
                             return Error::msg_span(
                                 n.span(),
@@ -784,6 +797,11 @@ impl FieldConfig {
             }
         }
 
+        // `set` has no effect when used with option or collect.
+        if set && (option || collect.is_some()) {
+            set = false;
+        }
+
         Ok(Self {
             ident,
             typ,
@@ -799,6 +817,7 @@ impl FieldConfig {
             otherwise,
             conflict,
             require,
+            set,
         })
     }
 }

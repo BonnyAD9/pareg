@@ -8,6 +8,8 @@
   simpler construction.
 - `FromArgs` derive macro supports seting custom error message for check
   conditions with `check_msg`.
+- `FromArgs` derive macro has new option `set` to skip using option on field
+  internally.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
