@@ -137,6 +137,11 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///     - `conflict`, `require`, `check` and `otherwise` will all behave as if
 ///       this field is always set.
 ///     - This has no effect when used with `collect` or `option`.
+/// - `act = <expr>`: Perform the given expression after parsing the argument.
+///   The value of the currently parsed argument is available under its name.
+///   If `option` or `collect` is set, it has the inner type and not the type
+///   of the field itself. The type of the value is 'fragile' because it is
+///   inferred so be careful when operating with the value.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms

@@ -163,10 +163,10 @@ pub fn test_format() {
     assert_eq!(s, "ab ");
 }
 
-static HELPED: AtomicBool = AtomicBool::new(false);
-
 #[test]
 pub fn test_from_args() {
+    static HELPED: AtomicBool = AtomicBool::new(false);
+
     #[derive(FromArgs)]
     #[from_args(match start {
         "-h" | "-?" | "--help" => HELPED.store(true, atomic::Ordering::Relaxed)
@@ -602,4 +602,80 @@ pub fn test_from_args_set() {
 
     let mut args = Pareg::new(vec!["--help"]);
     assert!(args.next_sub::<Args>().unwrap().helped);
+}
+
+#[test]
+pub fn test_do() {
+    static HELPED: AtomicBool = AtomicBool::new(false);
+
+    #[derive(FromArgs)]
+    #[from_args(positional_guard)]
+    struct Args {
+        #[from_args("-o", "--output", default = "output.png".into())]
+        output: PathBuf,
+        #[from_args("-v", "--verbose", flag, default)]
+        verbose: bool,
+        #[from_args("-i", "--input1", positional)]
+        input1: PathBuf,
+        #[from_args("-i", "--input2", positional)]
+        input2: PathBuf,
+        #[from_args("-h", "-?", "--help", default, flag, act = HELPED.store(true, atomic::Ordering::Relaxed))]
+        helped: bool,
+    }
+
+    let mut args =
+        Pareg::new(vec!["-o", "test.png", "-i", "img.png", "img2.png"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("test.png"));
+    assert_eq!(parsed.input1, PathBuf::from("img.png"));
+    assert_eq!(parsed.input2, PathBuf::from("img2.png"));
+    assert_eq!(parsed.verbose, false);
+    assert!(!parsed.helped);
+    assert!(!HELPED.load(atomic::Ordering::Relaxed));
+
+    let mut args = Pareg::new(vec!["-v", "img2.png", "img3.png"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(parsed.input1, PathBuf::from("img2.png"));
+    assert_eq!(parsed.input2, PathBuf::from("img3.png"));
+    assert_eq!(parsed.verbose, true);
+    assert!(!parsed.helped);
+    assert!(!HELPED.load(atomic::Ordering::Relaxed));
+
+    let mut args = Pareg::new(vec!["--input2", "img2.png", "img1.png", "-h"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(parsed.input1, PathBuf::from("img1.png"));
+    assert_eq!(parsed.input2, PathBuf::from("img2.png"));
+    assert_eq!(parsed.verbose, false);
+    assert!(parsed.helped);
+    assert!(HELPED.load(atomic::Ordering::Relaxed));
+    HELPED.store(false, atomic::Ordering::Relaxed);
+
+    let mut args = Pareg::new(vec!["--input2", "img2.png", "-i", "img1.png"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.output, PathBuf::from("output.png"));
+    assert_eq!(parsed.input1, PathBuf::from("img1.png"));
+    assert_eq!(parsed.input2, PathBuf::from("img2.png"));
+    assert_eq!(parsed.verbose, false);
+    assert!(!parsed.helped);
+    assert!(!HELPED.load(atomic::Ordering::Relaxed));
+
+    let mut args = Pareg::new(vec!["-h", "img.png"]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-h", "img.png", "img2.png", "img3.png"]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args =
+        Pareg::new(vec!["-h", "img.png", "img2.png", "-i", "img3.png"]);
+    assert!(args.next_sub::<Args>().is_err());
+
+    let mut args = Pareg::new(vec!["-h", "--lol"]);
+    assert!(args.next_sub::<Args>().is_err());
+    assert!(HELPED.load(atomic::Ordering::Relaxed));
 }

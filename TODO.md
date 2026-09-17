@@ -1,4 +1,3 @@
-- FromArgs do = action to do after parsing argument.
 - FromArgs with = custom parser for field.
 - More usable reader (read_until, read_while).
 - FromArgs or (+either) = requires one of them to be set.

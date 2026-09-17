@@ -29,6 +29,7 @@ struct FieldConfig {
     conflict: Vec<String>,
     require: Vec<String>,
     set: bool,
+    action: Option<TokenStream>,
 }
 
 struct FromArgsConfig {
@@ -606,6 +607,16 @@ impl FieldConfig {
             quote! { args.next_arg()? }
         };
 
+        let value = if let Some(a) = &self.action {
+            quote! {{
+                let mut #id = #value;
+                #a;
+                #id
+            }}
+        } else {
+            value
+        };
+
         if self.collect.is_some() {
             if self.flag {
                 if cur {
@@ -652,6 +663,12 @@ impl FieldConfig {
             if self.flag {
                 if cur {
                     set(value);
+                } else if let Some(a) = &self.action {
+                    set(quote! {{
+                        let mut #id = true.into();
+                        #a;
+                        #id
+                    }})
                 } else {
                     set(quote! { true.into() })
                 }
@@ -664,7 +681,7 @@ impl FieldConfig {
                     __unnamed_bits |= #ubit;
                 });
             }
-        }
+        };
 
         quote! { { #res } }
     }
@@ -710,6 +727,7 @@ impl FieldConfig {
         let mut conflict = vec![];
         let mut require = vec![];
         let mut set = false;
+        let mut action = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -755,6 +773,9 @@ impl FieldConfig {
                         "otherwise" => {
                             otherwise = Some(a.right.into_token_stream());
                         }
+                        "act" => {
+                            action = Some(a.right.into_token_stream());
+                        }
                         "conflict" => {
                             let idents = parse2::<ExprArray>(
                                 a.right.into_token_stream(),
@@ -790,7 +811,7 @@ impl FieldConfig {
                 } else {
                     return Error::msg_span(
                         v.span(),
-                        "Unknown option for FromArg.",
+                        "Unknown option for FromArgs.",
                     )
                     .err();
                 }
@@ -818,6 +839,7 @@ impl FieldConfig {
             conflict,
             require,
             set,
+            action,
         })
     }
 }

@@ -10,6 +10,8 @@
   conditions with `check_msg`.
 - `FromArgs` derive macro has new option `set` to skip using option on field
   internally.
+- `FromArgs` derive macro has new option `act` to set action to do when the
+  argument is parsed.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
