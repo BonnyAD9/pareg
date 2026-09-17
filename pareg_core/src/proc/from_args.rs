@@ -603,6 +603,8 @@ impl FieldConfig {
         let mut res = TokenStream::new();
         let value = if cur {
             quote! { args.cur_arg()? }
+        } else if self.flag {
+            quote! { true.into() }
         } else {
             quote! { args.next_arg()? }
         };
@@ -648,32 +650,14 @@ impl FieldConfig {
                 })
             }
 
-            let mut set = |t: TokenStream| {
-                if self.set {
-                    res.extend(quote! {
-                        #id = #t;
-                    });
-                } else {
-                    res.extend(quote! {
-                        #id = Some(#t);
-                    });
-                }
-            };
-
-            if self.flag {
-                if cur {
-                    set(value);
-                } else if let Some(a) = &self.action {
-                    set(quote! {{
-                        let mut #id = true.into();
-                        #a;
-                        #id
-                    }})
-                } else {
-                    set(quote! { true.into() })
-                }
+            if self.set {
+                res.extend(quote! {
+                    #id = #value;
+                });
             } else {
-                set(value);
+                res.extend(quote! {
+                    #id = Some(#value);
+                });
             }
 
             if self.positional {
