@@ -142,6 +142,12 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   If `option` or `collect` is set, it has the inner type and not the type
 ///   of the field itself. The type of the value is 'fragile' because it is
 ///   inferred so be careful when operating with the value.
+/// - `with = <expr>`: Parse the argument with the given function. `<expr>` may
+///   be anything that is callable with the signature (it doesn't have to be
+///   generic in any way):
+/// ```ignore
+/// fn foo<'a, T: 'a>(arg: &'a str) -> Result<T, ArgError>;
+/// ```
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms

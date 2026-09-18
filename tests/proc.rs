@@ -679,3 +679,17 @@ pub fn test_do() {
     assert!(args.next_sub::<Args>().is_err());
     assert!(HELPED.load(atomic::Ordering::Relaxed));
 }
+
+#[test]
+pub fn test_with() {
+    #[derive(Debug, FromArgs)]
+    struct Args {
+        #[from_args(positional, with = |a| pareg::split_arg(a, ","))]
+        items: Vec<String>,
+    }
+
+    let mut args = Pareg::new(vec!["a,b,c,d"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.items, vec!["a", "b", "c", "d"]);
+}

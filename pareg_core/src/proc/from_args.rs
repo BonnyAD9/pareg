@@ -30,6 +30,7 @@ struct FieldConfig {
     require: Vec<String>,
     set: bool,
     action: Option<TokenStream>,
+    with: Option<TokenStream>,
 }
 
 struct FromArgsConfig {
@@ -602,11 +603,19 @@ impl FieldConfig {
 
         let mut res = TokenStream::new();
         let value = if cur {
-            quote! { args.cur_arg()? }
+            if let Some(w) = &self.with {
+                quote! { args.cur_manual(#w)? }
+            } else {
+                quote! { args.cur_arg()? }
+            }
         } else if self.flag {
             quote! { true.into() }
         } else {
-            quote! { args.next_arg()? }
+            if let Some(w) = &self.with {
+                quote! { args.next_manual(#w)? }
+            } else {
+                quote! { args.next_arg()? }
+            }
         };
 
         let value = if let Some(a) = &self.action {
@@ -712,6 +721,7 @@ impl FieldConfig {
         let mut require = vec![];
         let mut set = false;
         let mut action = None;
+        let mut with = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -759,6 +769,9 @@ impl FieldConfig {
                         }
                         "act" => {
                             action = Some(a.right.into_token_stream());
+                        }
+                        "with" => {
+                            with = Some(a.right.into_token_stream());
                         }
                         "conflict" => {
                             let idents = parse2::<ExprArray>(
@@ -824,6 +837,7 @@ impl FieldConfig {
             require,
             set,
             action,
+            with,
         })
     }
 }

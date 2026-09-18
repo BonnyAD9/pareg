@@ -12,6 +12,8 @@
   internally.
 - `FromArgs` derive macro has new option `act` to set action to do when the
   argument is parsed.
+- `FromArgs` derive macro has new option `with` to set custom parser for the
+  given field.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
