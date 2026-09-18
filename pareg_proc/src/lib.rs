@@ -69,7 +69,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `flag`: The field is type that implements `From<bool>` which will be set
 ///   to `true.into()` if the flag is present. When used with `collect`, the
 ///   type is expected to be collection of that type. When used with `option`
-///   the field has to be option of that type.
+///   the field has to be option of that type. This will imply `default` if
+///   neither `option`, `collect` or `positional` is specified.
 /// - `positional`: Specifies that this argument may be set by any unknown
 ///   argument. Positional arguments are filled in the order that they are
 ///   present in the source code. Positional arguments can also have names
@@ -148,6 +149,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// ```ignore
 /// fn foo<'a, T: 'a>(arg: &'a str) -> Result<T, ArgError>;
 /// ```
+/// - `or = [<fields>]`: Specify that if this field is not set, one of the
+///   fields must be set. This will imply `default`.
 ///
 /// ## `#[from_args]` on the type
 /// - `match start { <arms> }`: custom match arms that will be before the arms

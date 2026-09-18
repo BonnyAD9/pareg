@@ -31,6 +31,7 @@ struct FieldConfig {
     set: bool,
     action: Option<TokenStream>,
     with: Option<TokenStream>,
+    or: Vec<String>,
 }
 
 struct FromArgsConfig {
@@ -90,6 +91,7 @@ fn derive_from_args_struct(
     validate_mutual_conflicts(&mut res, &cfg, &id_map);
     validate_require(&mut res, &fields, &id_map);
     validate_mutual_require(&mut res, &cfg, &id_map);
+    validate_or(&mut res, &fields, &id_map);
     validate_field_check(&mut res, &fields);
     validate_field_otherwise(&mut res, &fields);
     validate_check(&mut res, &cfg);
@@ -459,6 +461,37 @@ fn validate_mutual_require(
     }
 }
 
+fn validate_or<'a>(
+    res: &mut TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    id_map: &IdMap,
+) {
+    for field in fields {
+        if field.or.is_empty() {
+            continue;
+        }
+
+        let name = field.name(false);
+        let mut cond = field.is_set();
+
+        for or in &field.or {
+            let rfield = id_map[or].is_set();
+            cond.extend(quote! { || #rfield });
+        }
+
+        let msg = format!(
+            "When {name} is not specified you must specify one of: {}",
+            field.or.join(", ")
+        );
+
+        res.extend(quote! {
+            if !(#cond) {
+                return args.err_invalid().hint(#msg).err();
+            }
+        });
+    }
+}
+
 fn validate_field_check<'a>(
     res: &mut TokenStream,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
@@ -706,6 +739,21 @@ impl FieldConfig {
                 "Unnamed fields are not supported by FromArgs derive macro.",
             )
         })?;
+
+        fn parse_ident_list(
+            res: &mut Vec<String>,
+            t: TokenStream,
+        ) -> Result<()> {
+            let idents = parse2::<ExprArray>(t)?;
+            let ids = idents.elems.into_iter().map(|a| {
+                parse2::<Ident>(a.into_token_stream()).map(|a| a.to_string())
+            });
+            for id in ids {
+                res.push(id?);
+            }
+            Ok(())
+        }
+
         let typ = field.ty;
         let mut names = vec![];
         let mut default = None;
@@ -722,6 +770,7 @@ impl FieldConfig {
         let mut set = false;
         let mut action = None;
         let mut with = None;
+        let mut or = vec![];
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -774,28 +823,22 @@ impl FieldConfig {
                             with = Some(a.right.into_token_stream());
                         }
                         "conflict" => {
-                            let idents = parse2::<ExprArray>(
+                            parse_ident_list(
+                                &mut conflict,
                                 a.right.into_token_stream(),
                             )?;
-                            let ids = idents.elems.into_iter().map(|a| {
-                                parse2::<Ident>(a.into_token_stream())
-                                    .map(|a| a.to_string())
-                            });
-                            for id in ids {
-                                conflict.push(id?);
-                            }
                         }
                         "require" => {
-                            let idents = parse2::<ExprArray>(
+                            parse_ident_list(
+                                &mut require,
                                 a.right.into_token_stream(),
                             )?;
-                            let ids = idents.elems.into_iter().map(|a| {
-                                parse2::<Ident>(a.into_token_stream())
-                                    .map(|a| a.to_string())
-                            });
-                            for id in ids {
-                                require.push(id?);
-                            }
+                        }
+                        "or" => {
+                            parse_ident_list(
+                                &mut or,
+                                a.right.into_token_stream(),
+                            )?;
                         }
                         _ => {
                             return Error::msg_span(
@@ -820,6 +863,13 @@ impl FieldConfig {
             set = false;
         }
 
+        if (!or.is_empty()
+            || (flag && !option && collect.is_none() && !positional))
+            && default.is_none()
+        {
+            default = Some(None);
+        }
+
         Ok(Self {
             ident,
             typ,
@@ -838,6 +888,7 @@ impl FieldConfig {
             set,
             action,
             with,
+            or,
         })
     }
 }

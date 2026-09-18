@@ -1,1 +1,1 @@
-- FromArgs or (+either) = requires one of them to be set.
+- FromArgs either = requires one of them to be set.

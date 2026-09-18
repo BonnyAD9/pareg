@@ -693,3 +693,35 @@ pub fn test_with() {
 
     assert_eq!(parsed.items, vec!["a", "b", "c", "d"]);
 }
+
+#[test]
+pub fn test_or() {
+    #[derive(Debug, FromArgs)]
+    struct Args {
+        #[from_args("-p", or = [helped])]
+        path: PathBuf,
+        #[from_args("-h", flag)]
+        helped: bool,
+    }
+
+    let mut args = Pareg::new(vec!["-h"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(parsed.helped);
+    assert_eq!(parsed.path, PathBuf::default());
+
+    let mut args = Pareg::new(vec!["-p", "hi"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(!parsed.helped);
+    assert_eq!(parsed.path, PathBuf::from("hi"));
+
+    let mut args = Pareg::new(vec!["-p", "hi", "-h"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(parsed.helped);
+    assert_eq!(parsed.path, PathBuf::from("hi"));
+
+    let mut args = Pareg::<String>::new(vec![]);
+    assert!(args.next_sub::<Args>().is_err());
+}

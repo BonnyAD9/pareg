@@ -15,12 +15,15 @@
 - `FromArgs` derive macro has new option `with` to set custom parser for the
   given field.
 - Add method `read_while` to `Reader`.
+- `FromArgs` derive macro has new option `or` to specify that if this field is
+  not set, one of the given fields must be set.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.
 - Errors now print the arguments only if they come from `Pareg` or `ParegRef`
   or if explicitly enabled with `show_args()`.
 - The single field in `Error` is now public.
+- `flag` in `FromArgs` derive macro may now imply `default`.
 
 ## v0.13.0
 ### Breaking changes
