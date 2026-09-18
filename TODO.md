@@ -1,2 +1,1 @@
-- More usable reader (read_until, read_while).
 - FromArgs or (+either) = requires one of them to be set.

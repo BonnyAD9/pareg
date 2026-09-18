@@ -154,6 +154,23 @@ impl<'a> Reader<'a> {
         Ok(())
     }
 
+    /// Read chars until the condition in `f` stops being true or until the end
+    /// of the data.
+    pub fn read_while(
+        &mut self,
+        res: &mut String,
+        mut f: impl FnMut(char) -> bool,
+    ) -> Result<()> {
+        while let Some(c) = self.peek()? {
+            if !f(c) {
+                break;
+            }
+            res.push(c);
+            self.next()?;
+        }
+        Ok(())
+    }
+
     /// Checks if the next char is the given char. If yes, returns true and
     /// moves to the next position.
     pub fn is_next_some(&mut self, c: char) -> Result<bool> {
