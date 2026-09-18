@@ -178,6 +178,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `require = [<fields>]`: Specifies that the given fields have to be set
 ///   together. If some of them is set but not all, parsing will result in
 ///   error.
+/// - `either = [<fields>]`: Specifies that one of the given fields must be
+///   set. If none of them is set, parsing will result in error.
 ///
 /// # Example
 /// ```

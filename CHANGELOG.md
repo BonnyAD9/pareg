@@ -17,6 +17,8 @@
 - Add method `read_while` to `Reader`.
 - `FromArgs` derive macro has new option `or` to specify that if this field is
   not set, one of the given fields must be set.
+- `FromArgs` derive macro has new option `either` to specifies that one of the
+  given fields must be set.
 
 ### Changes
 - `cur_manual` and `next_manual` take `FnOnce` instead of `Fn`.

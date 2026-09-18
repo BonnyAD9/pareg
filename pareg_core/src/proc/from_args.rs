@@ -42,6 +42,7 @@ struct FromArgsConfig {
     check: Vec<(TokenStream, Option<TokenStream>)>,
     conflict: Vec<Vec<String>>,
     require: Vec<Vec<String>>,
+    either: Vec<Vec<String>>,
 }
 
 /// Implementation of the derive proc macro for [`crate::FromArgs`]
@@ -92,6 +93,7 @@ fn derive_from_args_struct(
     validate_require(&mut res, &fields, &id_map);
     validate_mutual_require(&mut res, &cfg, &id_map);
     validate_or(&mut res, &fields, &id_map);
+    validate_either(&mut res, &cfg, &id_map);
     validate_field_check(&mut res, &fields);
     validate_field_otherwise(&mut res, &fields);
     validate_check(&mut res, &cfg);
@@ -492,6 +494,31 @@ fn validate_or<'a>(
     }
 }
 
+fn validate_either(
+    res: &mut TokenStream,
+    cfg: &FromArgsConfig,
+    id_map: &IdMap,
+) {
+    for group in &cfg.either {
+        let Some(first) = group.first() else {
+            continue;
+        };
+        let mut cond = id_map[first].is_set();
+
+        for or in &group[1..] {
+            let rfield = id_map[or].is_set();
+            cond.extend(quote! { || #rfield });
+        }
+
+        let msg = format!("You must specify one of: {}", group.join(", "));
+        res.extend(quote! {
+            if !(#cond) {
+                return args.err_invalid().hint(#msg).err();
+            }
+        });
+    }
+}
+
 fn validate_field_check<'a>(
     res: &mut TokenStream,
     fields: impl IntoIterator<Item = &'a FieldConfig>,
@@ -740,20 +767,6 @@ impl FieldConfig {
             )
         })?;
 
-        fn parse_ident_list(
-            res: &mut Vec<String>,
-            t: TokenStream,
-        ) -> Result<()> {
-            let idents = parse2::<ExprArray>(t)?;
-            let ids = idents.elems.into_iter().map(|a| {
-                parse2::<Ident>(a.into_token_stream()).map(|a| a.to_string())
-            });
-            for id in ids {
-                res.push(id?);
-            }
-            Ok(())
-        }
-
         let typ = field.ty;
         let mut names = vec![];
         let mut default = None;
@@ -902,6 +915,7 @@ impl FromArgsConfig {
         let mut check = vec![];
         let mut conflict = vec![];
         let mut require = vec![];
+        let mut either = vec![];
 
         for attr in attrs {
             if !attr.path().is_ident("from_args") {
@@ -938,32 +952,19 @@ impl FromArgsConfig {
                             last.1 = Some(a.right.into_token_stream());
                         }
                         "conflict" => {
-                            let idents = parse2::<ExprArray>(
+                            conflict.push(get_ident_list(
                                 a.right.into_token_stream(),
-                            )?;
-                            let ids = idents
-                                .elems
-                                .into_iter()
-                                .map(|a| {
-                                    parse2::<Ident>(a.into_token_stream())
-                                        .map(|a| a.to_string())
-                                })
-                                .collect::<Result<_, _>>()?;
-                            conflict.push(ids);
+                            )?);
                         }
                         "require" => {
-                            let idents = parse2::<ExprArray>(
+                            require.push(get_ident_list(
                                 a.right.into_token_stream(),
-                            )?;
-                            let ids = idents
-                                .elems
-                                .into_iter()
-                                .map(|a| {
-                                    parse2::<Ident>(a.into_token_stream())
-                                        .map(|a| a.to_string())
-                                })
-                                .collect::<Result<_, _>>()?;
-                            require.push(ids);
+                            )?);
+                        }
+                        "either" => {
+                            either.push(get_ident_list(
+                                a.right.into_token_stream(),
+                            )?);
                         }
                         o => {
                             return Error::msg_span(
@@ -1012,6 +1013,7 @@ impl FromArgsConfig {
             check,
             conflict,
             require,
+            either,
         })
     }
 }
@@ -1020,4 +1022,21 @@ fn arm_to_token_stream(arm: Arm) -> TokenStream {
     let pat = arm.pat;
     let body = arm.body;
     quote! { #pat => #body, }
+}
+
+fn get_ident_list(t: TokenStream) -> Result<Vec<String>> {
+    let mut res = vec![];
+    parse_ident_list(&mut res, t)?;
+    Ok(res)
+}
+
+fn parse_ident_list(res: &mut Vec<String>, t: TokenStream) -> Result<()> {
+    let idents = parse2::<ExprArray>(t)?;
+    let ids = idents.elems.into_iter().map(|a| {
+        parse2::<Ident>(a.into_token_stream()).map(|a| a.to_string())
+    });
+    for id in ids {
+        res.push(id?);
+    }
+    Ok(())
 }

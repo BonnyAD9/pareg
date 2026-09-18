@@ -725,3 +725,36 @@ pub fn test_or() {
     let mut args = Pareg::<String>::new(vec![]);
     assert!(args.next_sub::<Args>().is_err());
 }
+
+#[test]
+pub fn test_either() {
+    #[derive(Debug, FromArgs)]
+    #[from_args(either = [path, helped])]
+    struct Args {
+        #[from_args("-p", default)]
+        path: PathBuf,
+        #[from_args("-h", flag)]
+        helped: bool,
+    }
+
+    let mut args = Pareg::new(vec!["-h"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(parsed.helped);
+    assert_eq!(parsed.path, PathBuf::default());
+
+    let mut args = Pareg::new(vec!["-p", "hi"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(!parsed.helped);
+    assert_eq!(parsed.path, PathBuf::from("hi"));
+
+    let mut args = Pareg::new(vec!["-p", "hi", "-h"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert!(parsed.helped);
+    assert_eq!(parsed.path, PathBuf::from("hi"));
+
+    let mut args = Pareg::<String>::new(vec![]);
+    assert!(args.next_sub::<Args>().is_err());
+}
