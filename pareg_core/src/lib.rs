@@ -29,13 +29,10 @@ use std::{borrow::Cow, cell::Cell, env, ffi::OsString, ops::RangeBounds};
 
 /// Helper for parsing arguments.
 ///
-/// The preffered way to use this is to call [`Pareg::ref_mut`] to get
-/// [`ParegRef`] structure, which can be than used to parse the data:
-///
 /// This may be used to own the argument data. You can than get [`ParegRef`]
-/// structure by calling [`Pareg::ref_mut`] to pass around and do the parsing,
-/// because it can be less strict about lifetimes since it refers to the
-/// original pareg structure and so it is more powerful.
+/// structure by calling [`Pareg::get_mut_ref`] to pass around and do the
+/// parsing, because it can be less strict about lifetimes since it refers to
+/// the original pareg structure and so it is more powerful.
 pub struct Pareg<S = String> {
     args: Vec<S>,
     cur: Cell<usize>,
@@ -349,7 +346,7 @@ impl<S> Pareg<S> {
     /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
     /// also parsed to the given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     ///
     /// # Examples
     /// ```rust
@@ -477,7 +474,7 @@ impl<S> Pareg<S> {
     /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
     /// given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     ///
     /// # Examples
     /// ```rust
@@ -613,7 +610,7 @@ impl<S> Pareg<S> {
     /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
     /// also parsed to the given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     ///
     /// # Examples
     /// ```rust
@@ -755,7 +752,7 @@ impl<S> Pareg<S> {
     /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
     /// given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     ///
     /// # Examples
     /// ```rust

@@ -50,7 +50,7 @@ where
 /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
 /// also parsed to the given type.
 ///
-/// In case that there is no `'='`, returns [`ArgError::NoValue`].
+/// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
 ///
 /// # Examples
 /// ```rust
@@ -214,7 +214,7 @@ where
 /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
 /// given type.
 ///
-/// In case that there is no `'='`, returns [`ArgError::NoValue`].
+/// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
 ///
 /// # Examples
 /// ```rust

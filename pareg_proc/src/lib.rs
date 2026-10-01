@@ -93,7 +93,7 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `collect = <range>`: Same as collect. This will also enable verification
 ///   that the number of items is within the given range. `<range>` may be any
 ///   expression for which `(<range>).contains(&field.len())` is valid and
-///   returns [`bool`] where <field> is variable of the type of this field.
+///   returns [`bool`] where `<field>` is variable of the type of this field.
 ///   This is valid for example for standard ranges (e.g. `2..`) or arrays
 ///   (e.g. `[2]`), if the collection has method `len` which returns the number
 ///   of elements as [`usize`]. This range limit doesn't affect the behaviour

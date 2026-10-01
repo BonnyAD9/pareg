@@ -205,7 +205,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
     /// also parsed to the given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     #[inline]
     pub fn next_key_val<K: FromArg<'a>, V: FromArg<'a>>(
         &mut self,
@@ -258,7 +258,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
     /// given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     #[inline]
     pub fn next_val<T: FromArg<'a>>(&mut self, sep: char) -> Result<T> {
         let arg = self.next_arg()?;
@@ -311,7 +311,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// If sep was `'='`, parses `"key=value"` into `"key"` and `value` that is
     /// also parsed to the given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     #[inline]
     pub fn cur_key_val<K: FromArg<'a>, V: FromArg<'a>>(
         &self,
@@ -364,7 +364,7 @@ impl<'a, S: ArgInto<'a>> ParegRef<'a, S> {
     /// If sep was `'='`, parses `"key=value"` into `value` that is parsed to the
     /// given type.
     ///
-    /// In case that there is no `'='`, returns [`ArgError::NoValue`].
+    /// In case that there is no `'='`, returns [`ArgErrKind::NoValue`].
     #[inline]
     pub fn cur_val<T: FromArg<'a>>(&self, sep: char) -> Result<T> {
         self.map_res(val_arg(self.cur_arg()?, sep))

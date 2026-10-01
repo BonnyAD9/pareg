@@ -66,6 +66,8 @@
 //! }
 //! ```
 //!
+//! For more info see the derive macro [`FromArgs`].
+//!
 //! ### Without derive macro
 //!
 //! ```rust
