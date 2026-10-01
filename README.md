@@ -2,18 +2,13 @@
 [![crates.io][version-badge]][crate]
 [![donwloads][downloads-badge]][releases]
 
-Helpful utilities for parsing command line arguments.
+Helpful utilities for parsing command line arguments and also parsing in
+general.
 
-The aim of this crate is not to automate parsing of command line arguments
-because there are many ways to construct a CLI for your application and
-universal parser is not would be as hard to use as just writing it yourself.
-Instead this crate provides useful types and parsing funcitonality to make the
-process of writing your own code to parse command line arguments as simple as
-possible: It provides special struct for parsing the arguments in various ways
-and plenty of useful parsing functions and macros. Everything is made to
-minimize the repetetive part of the code for parsing the arguments and
-providing very user friendly error messages out of the box. If you wan't to see
-examples see [docs][docs].
+The aim of this crate is to simplify parsing of command line arguments. For
+basic argument parsing you can use the derive macro `FromArgs`. If that doesn't
+suffice, you can use pareg to automate the more manual way of parsing command
+line arguments.
 
 ### Main constructs:
 - `Pareg`: istruct that will help with parsing of arguments.
@@ -22,6 +17,7 @@ examples see [docs][docs].
     - It is implemented for all types in standard library that implement
       `FromStr` and there is simple trait to just mark `FromStr` implementation
       as also `FromArg`: `FromArgStr`.
+- `FromArgs`: trait for types that can parse from multiple arguments.
 - macros `starts_any` and `has_any_key`: useful for checking argument types.
 
 ### Example error message
@@ -34,8 +30,52 @@ argument error: Unknown option `no`.
 hint: Valid options are: `auto`, `always`, `never`.
 ```
 
-## How to use it
-Documentation and examples are available at the [docs][docs].
+## Usage
+
+If you want to see the more manual usage see [docs][docs]. This shows basic
+parsing with the `FromArgs` derive macro.
+
+```rust
+use std::path::PathBuf;
+use pareg::{self, Pareg, FromArgs};
+
+// Derive `FromArgs`.
+#[derive(FromArgs)]
+struct Args {
+    // Specify the argument names as plain strings.
+    // You can specify custom default value. If no default value is set the
+    // argument is required.
+    #[from_args("-o", "--output", default = "output.png".into())]
+    output: PathBuf,
+    // Flag argument. For flag arguments the default value is implied to be
+    // false.
+    #[from_args("-v", "--verbose", flag)]
+    verbose: bool,
+    // Another flag argument, when it is encountered, do the action specified
+    // with `act`.
+    #[from_args("-h", "-?", "--help", flag, act = println!("help"))]
+    helped: bool,
+}
+
+impl Args {
+    pub fn parse(mut args: Pareg) -> pareg::Result<Self> {
+        args.next_sub()
+    }
+}
+```
+
+You can do much more with the derive macro. For more information see the
+[documentation][from-args-doc] of the derive macro itself.
+
+### Features
+The features in this macro are mainly used to modfy some default behaviour:
+- `default`: `color-auto-stderr`
+- `color-auto-stderr`: Enable colored errors if stderr is terminal.
+- `color-auto-stdin`: Enable colored errors if stdout is terminal.
+- `color-never`: Disable colored errors.
+- `color-always`: Enable colored errors.
+- `no-anounce`: Don't print `argument error:` or `error:` before the error.
+- `short-errors`: Always print only the error message.
 
 ## How to get it
 It is available on [crates.io][crate]:
@@ -43,12 +83,6 @@ It is available on [crates.io][crate]:
 ### With cargo
 ```shell
 cargo add pareg
-```
-
-### In Cargo.toml
-```toml
-[dependencies]
-pareg = "0.1.0"
 ```
 
 ## Links
@@ -66,3 +100,4 @@ pareg = "0.1.0"
 [crate]: https://crates.io/crates/pareg
 [my-web]: https://bonnyad9.github.io/
 [releases]: https://github.com/BonnyAD9/pareg/releases
+[from-args-doc]: https://docs.rs/pareg/latest/pareg/derive.FromArgs.html

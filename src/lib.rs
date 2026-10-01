@@ -1,9 +1,11 @@
 //! # pareg
-//! Helpful utilities for parsing command line arguments.
+//! Helpful utilities for parsing command line arguments and also parsing in
+//! general.
 //!
-//! The aim of this crate is not to have some magic derive macro that will do
-//! all of the parsing for you. Instead pareg will let you choose exactly how
-//! to parse the arguments, but it will help as much as possible.
+//! The aim of this crate is to simplify parsing of command line arguments. For
+//! basic argument parsing you can use the derive macro `FromArgs`. If that
+//! doesn't suffice, you can use pareg to automate the more manual way of
+//! parsing command line arguments.
 //!
 //! Pareg also comes with user friendly errors so that you don't have to worry
 //! about writing the error messages while parsing the arguments. For example
@@ -21,16 +23,60 @@
 //! hint: Valid options are: `auto`, `always`, `never`.
 //! ```
 //!
+//! ## Features
+//! The features in this macro are mainly used to modfy some default behaviour:
+//! - `default`: `color-auto-stderr`
+//! - `color-auto-stderr`: Enable colored errors if stderr is terminal.
+//! - `color-auto-stdin`: Enable colored errors if stdout is terminal.
+//! - `color-never`: Disable colored errors.
+//! - `color-always`: Enable colored errors.
+//! - `no-anounce`: Don't print `argument error:` or `error:` before the error.
+//! - `short-errors`: Always print only the error message.
+//!
 //! ## Example usage
+//!
+//! ### With derive macro
+//! ```rust
+//!
+//! use std::path::PathBuf;
+//! use pareg::{self, Pareg, FromArgs};
+//!
+//! // Derive `FromArgs`.
+//! #[derive(FromArgs)]
+//! struct Args {
+//!     // Specify the argument names as plain strings.
+//!     // You can specify custom default value. If no default value is set the
+//!     // argument is required.
+//!     #[from_args("-o", "--output", default = "output.png".into())]
+//!     output: PathBuf,
+//!     // Flag argument. For flag arguments the default value is implied to be
+//!     // false.
+//!     #[from_args("-v", "--verbose", flag)]
+//!     verbose: bool,
+//!     // Another flag argument, when it is encountered, do the action
+//!     // specified with `act`.
+//!     #[from_args("-h", "-?", "--help", flag, act = println!("help"))]
+//!     helped: bool,
+//! }
+//!
+//! impl Args {
+//!     pub fn parse(mut args: Pareg) -> pareg::Result<Self> {
+//!         args.next_sub()
+//!     }
+//! }
+//! ```
+//!
+//! ### Without derive macro
+//!
 //! ```rust
 //! use std::process::ExitCode;
 //!
 //! use pareg::{Result, Pareg, FromArg, starts_any};
 //!
-//! // You can define enums, and have them automaticaly derive FromArg where each
-//! // enum variant will be parsed from case insensitive strings of the same name
-//! // (e.g. `"Auto"` will parse into `Auto`, `"always"` into `Always`, `"NEVER"`
-//! // into `Never`)
+//! // You can define enums, and have them automaticaly derive FromArg where
+//! // each enum variant will be parsed from case insensitive strings of the
+//! // same name (e.g. `"Auto"` will parse into `Auto`, `"always"` into
+//! // `Always`, `"NEVER"` into `Never`)
 //! #[derive(FromArg)]
 //! enum ColorMode {
 //!     Auto,
