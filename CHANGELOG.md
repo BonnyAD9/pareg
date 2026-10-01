@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Future
+## v0.13.1
 ### New features
 - New function `suffix_arg` and methods `next_suffix` and `cur_suffix` to check
   the prefix of the argument and parse its suffix.
