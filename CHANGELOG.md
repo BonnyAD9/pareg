@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## future
+### Breaking Changes
+- `FromArgs` derive macro will now use `push` instead of `extend` on fields
+  with `collect` to avoid ambiguity with copy types.
+
 ### New features
 - `FromArgs` derive macro has new option `bitflag` for bitflags.
 
