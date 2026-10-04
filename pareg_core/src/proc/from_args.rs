@@ -328,6 +328,10 @@ fn validate_conflicts<'a>(
     id_map: &IdMap,
 ) {
     for field in fields {
+        if field.conflict.is_empty() {
+            continue;
+        }
+
         let name = field.name(false);
         let mut checks = TokenStream::new();
 
@@ -405,6 +409,10 @@ fn validate_require<'a>(
     id_map: &IdMap,
 ) {
     for field in fields {
+        if field.require.is_empty() {
+            continue;
+        }
+
         let name = field.name(false);
         let mut checks = TokenStream::new();
 

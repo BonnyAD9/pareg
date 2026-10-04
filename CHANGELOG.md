@@ -8,6 +8,9 @@
 ### New features
 - `FromArgs` derive macro has new option `bitflag` for bitflags.
 
+### Fixes
+- Avoid accidentaly generating empty checks with `FromArgs`.
+
 ## v0.13.1
 ### New features
 - New function `suffix_arg` and methods `next_suffix` and `cur_suffix` to check
