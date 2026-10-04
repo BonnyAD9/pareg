@@ -758,3 +758,32 @@ pub fn test_either() {
     let mut args = Pareg::<String>::new(vec![]);
     assert!(args.next_sub::<Args>().is_err());
 }
+
+pub fn test_bitflags() {
+    #[derive(FromArgs)]
+    struct Args {
+        #[from_args(bitflags = match 0x10 {
+            "-n1" => 0x1,
+            "-n2" => 0x2,
+        })]
+        norm: u32,
+        #[from_args(set, bitflags = match 0x20 {
+            "-s1" => 0x1,
+            "-s2" => 0x2,
+        })]
+        wset: u32,
+        #[from_args("-c", collect, bitflags = match 0x30 {
+            "-c1" => 0x1,
+            "-c2" => 0x2,
+        })]
+        wcollect: Vec<u32>,
+    }
+
+    let mut args =
+        Pareg::new(vec!["-n2", "-s1", "-s2", "-c1", "-c", "64", "-c2"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.norm, 0x12);
+    assert_eq!(parsed.wset, 0x23);
+    assert_eq!(parsed.wcollect, vec![0x31, 0x41]);
+}

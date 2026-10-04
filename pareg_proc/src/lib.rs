@@ -79,17 +79,17 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   name will fill the first empty positional argument with that name.
 /// - `collect`: Specifies that this argument is expected to be present
 ///   multiple times and all occurences will be collected into a collection.
-///   The type has to have method `extend` available with the same sematics as
-///   that of the trait [`Extend`]. The type must implement [`Default`] or the
-///   default value must be specified with `default = <expr>`. This default is
-///   representing empty collection. If `collect` is combined with
-///   `positional`, and there are positional fields after collect, the
-///   positional fields after this one will never be filled as positional as
-///   the collection will consume all positional fields and never move to the
-///   next field. When used with `opition`, the type inside the option is the
-///   collection and it is required to implement method `.is_empty()` which
-///   checks whether the collection is empty or not by returning [`bool`]. This
-///   method will decide if the result is the collection or [`None`].
+///   The type is expected to have methods simmilar to [`Vec`]. That is namely
+///   `.is_empty()`, `.push()`, `.push_mut()` and `.last_mut()`. default value
+///   must be specified with `default = <expr>`. This default is representing
+///   empty collection. If `collect` is combined with `positional`, and there
+///   are positional fields after collect, the positional fields after this one
+///   will never be filled as positional as the collection will consume all
+///   positional fields and never move to the next field. When used with
+///   `opition`, the type inside the option is the collection and it is
+///   required to implement method `.is_empty()` which checks whether the
+///   collection is empty or not by returning [`bool`]. This method will decide
+///   if the result is the collection or [`None`].
 /// - `collect = <range>`: Same as collect. This will also enable verification
 ///   that the number of items is within the given range. `<range>` may be any
 ///   expression for which `(<range>).contains(&field.len())` is valid and
@@ -146,6 +146,13 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 /// - `with = <expr>`: Parse the argument with the given function. `<expr>` may
 ///   be anything that is callable with the signature (it doesn't have to be
 ///   generic in any way):
+/// - `bitflags = match <default> { <pat> => <expr>, ... }`: Specifies that
+///   this field can be used as bitfield. Each arm in the match specifies how
+///   the argument is matched and what value will be or-assigned (`|=`) to the
+///   current value. If the current value is not set it will be set to
+///   `<default>` before the or-assignment. If used with `collect` it will
+///   affect the last item and `<default>` will be inserted if the collection
+///   is empty.
 /// ```ignore
 /// fn foo<'a, T: 'a>(arg: &'a str) -> Result<T, ArgError>;
 /// ```

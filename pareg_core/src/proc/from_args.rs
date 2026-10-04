@@ -32,6 +32,7 @@ struct FieldConfig {
     action: Option<TokenStream>,
     with: Option<TokenStream>,
     or: Vec<String>,
+    bitflags: Option<ExprMatch>,
 }
 
 struct FromArgsConfig {
@@ -242,6 +243,7 @@ fn unique_arms<'a>(
         };
 
         if pat.is_empty() {
+            field.bitfield_arms(res);
             continue;
         }
 
@@ -249,7 +251,9 @@ fn unique_arms<'a>(
 
         res.extend(quote! {
             #pat => { #expr },
-        })
+        });
+
+        field.bitfield_arms(res);
     }
 
     Ok(unnamed)
@@ -653,6 +657,40 @@ fn extract_fields<'a>(
 }
 
 impl FieldConfig {
+    pub fn bitfield_arms(&self, res: &mut TokenStream) {
+        let Some(bitflags) = &self.bitflags else {
+            return;
+        };
+
+        let id = &self.ident;
+
+        let def = &bitflags.expr;
+        let fld = if self.collect.is_some() {
+            quote! {
+                *if #id.is_empty() {
+                    #id.push_mut(#def)
+                } else {
+                    #id.last_mut().unwrap()
+                }
+            }
+        } else if self.set {
+            quote! { #id }
+        } else {
+            quote! { *#id.get_or_insert_with(|| #def) }
+        };
+
+        for arm in &bitflags.arms {
+            let pat = &arm.pat;
+            let val = &arm.body;
+
+            res.extend(quote! {
+                #pat => {
+                    #fld |= #val;
+                }
+            })
+        }
+    }
+
     pub fn set_field(
         &self,
         cfg: &FromArgsConfig,
@@ -692,16 +730,16 @@ impl FieldConfig {
             if self.flag {
                 if cur {
                     res.extend(quote! {
-                        #id.extend([#value]);
+                        #id.push(#value);
                     });
                 } else {
                     res.extend(quote! {
-                        #id.extend([true]);
+                        #id.push(true.into());
                     });
                 }
             } else {
                 res.extend(quote! {
-                    #id.extend([#value]);
+                    #id.push(#value);
                 })
             }
         } else {
@@ -784,6 +822,7 @@ impl FieldConfig {
         let mut action = None;
         let mut with = None;
         let mut or = vec![];
+        let mut bitflags = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -853,6 +892,11 @@ impl FieldConfig {
                                 a.right.into_token_stream(),
                             )?;
                         }
+                        "bitflags" => {
+                            bitflags = Some(syn::parse2(
+                                a.right.into_token_stream(),
+                            )?);
+                        }
                         _ => {
                             return Error::msg_span(
                                 id.span(),
@@ -902,6 +946,7 @@ impl FieldConfig {
             action,
             with,
             or,
+            bitflags,
         })
     }
 }
