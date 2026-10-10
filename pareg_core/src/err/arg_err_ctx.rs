@@ -115,6 +115,7 @@ impl ArgErrCtx {
         }
         self.args = args;
         self.error_idx = idx;
+        self.show_args = true;
     }
 
     /// Adds hint to the error message.
@@ -194,7 +195,7 @@ impl Display for ArgErrCtx {
             if self.anounce {
                 writemc!(f, color, "{'r}error:{'_ bold} {long_message}{'_}")?;
             } else {
-                writemc!(f, color, "{'bold} {long_message}{'_}")?;
+                writemc!(f, color, "{'bold}{long_message}{'_}")?;
             }
             if let Some(h) = &self.hint {
                 writemc!(f, color, " {h}")?;

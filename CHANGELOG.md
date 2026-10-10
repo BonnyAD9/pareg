@@ -10,6 +10,7 @@
 
 ### Fixes
 - Avoid accidentaly generating empty checks with `FromArgs`.
+- Automatically enable long message.
 
 ## v0.13.1
 ### New features
