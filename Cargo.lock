@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "pareg"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "pareg_core",
  "pareg_proc",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_core"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "minimal-lexical",
  "proc-macro2",
@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "pareg_proc"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "pareg_core",
 ]

@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## future
+## v0.14.0
 ### Breaking Changes
 - `FromArgs` derive macro will now use `push` instead of `extend` on fields
   with `collect` to avoid ambiguity with copy types.
