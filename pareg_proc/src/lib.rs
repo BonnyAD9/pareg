@@ -71,6 +71,8 @@ pub fn derive_from_arg(item: TokenStream) -> TokenStream {
 ///   type is expected to be collection of that type. When used with `option`
 ///   the field has to be option of that type. This will imply `default` if
 ///   neither `option`, `collect` or `positional` is specified.
+/// - `flag = <expr>`: Acts the same as `flag` except that it sets the value of
+///   the field to the given expression.
 /// - `positional`: Specifies that this argument may be set by any unknown
 ///   argument. Positional arguments are filled in the order that they are
 ///   present in the source code. Positional arguments can also have names

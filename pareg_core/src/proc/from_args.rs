@@ -16,7 +16,7 @@ type IdMap<'a> = HashMap<String, &'a FieldConfig>;
 struct FieldConfig {
     ident: Ident,
     typ: Type,
-    flag: bool,
+    flag: Option<Option<TokenStream>>,
     positional: bool,
     option: bool,
     collect: Option<Option<TokenStream>>,
@@ -714,8 +714,12 @@ impl FieldConfig {
             } else {
                 quote! { args.cur_arg()? }
             }
-        } else if self.flag {
-            quote! { true.into() }
+        } else if let Some(f) = &self.flag {
+            if let Some(f) = f {
+                f.clone()
+            } else {
+                quote! { true.into() }
+            }
         } else {
             if let Some(w) = &self.with {
                 quote! { args.next_manual(#w)? }
@@ -735,14 +739,15 @@ impl FieldConfig {
         };
 
         if self.collect.is_some() {
-            if self.flag {
+            if let Some(f) = &self.flag {
                 if cur {
                     res.extend(quote! {
                         #id.push(#value);
                     });
                 } else {
+                    let f = f.clone().unwrap_or(quote! { true.into() });
                     res.extend(quote! {
-                        #id.push(true.into());
+                        #id.push(#f);
                     });
                 }
             } else {
@@ -816,7 +821,7 @@ impl FieldConfig {
         let typ = field.ty;
         let mut names = vec![];
         let mut default = None;
-        let mut flag = false;
+        let mut flag = None;
         let mut positional = false;
         let mut collect = None;
         let mut no_rewrite = None;
@@ -848,7 +853,7 @@ impl FieldConfig {
                         "collect" => collect = Some(None),
                         "no_rewrite" => no_rewrite = Some(true),
                         "rewrite" => no_rewrite = Some(false),
-                        "flag" => flag = true,
+                        "flag" => flag = Some(None),
                         "set" => set = true,
                         _ => {
                             return Error::msg_span(
@@ -881,6 +886,9 @@ impl FieldConfig {
                         }
                         "with" => {
                             with = Some(a.right.into_token_stream());
+                        }
+                        "flag" => {
+                            flag = Some(Some(a.right.into_token_stream()));
                         }
                         "conflict" => {
                             parse_ident_list(
@@ -929,7 +937,7 @@ impl FieldConfig {
         }
 
         if (!or.is_empty()
-            || (flag && !option && collect.is_none() && !positional))
+            || (flag.is_some() && !option && collect.is_none() && !positional))
             && default.is_none()
         {
             default = Some(None);

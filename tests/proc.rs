@@ -787,3 +787,22 @@ pub fn test_bitflags() {
     assert_eq!(parsed.wset, 0x23);
     assert_eq!(parsed.wcollect, vec![0x31, 0x41]);
 }
+
+#[test]
+pub fn test_flag_set() {
+    #[derive(Debug, FromArgs)]
+    struct Args {
+        #[from_args("-v", flag = 2, default = 1)]
+        verbosity: u32,
+    }
+
+    let mut args = Pareg::<String>::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.verbosity, 1);
+
+    let mut args = Pareg::new(vec!["-v"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.verbosity, 2);
+}
