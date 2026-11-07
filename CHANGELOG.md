@@ -2,7 +2,8 @@
 
 ## future
 ### New features
-- Add option to set the flag value in `FromArgs`.
+- Add option to set the flag value in the `FromArgs` derive macro.
+- Add option to specify assignment for argument in the `FromArgs` derive macro.
 
 ## v0.14.0
 ### Breaking Changes

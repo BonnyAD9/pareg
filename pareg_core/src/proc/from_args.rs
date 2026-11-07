@@ -33,6 +33,7 @@ struct FieldConfig {
     with: Option<TokenStream>,
     or: Vec<String>,
     bitflags: Option<ExprMatch>,
+    assign: Option<String>,
 }
 
 struct FromArgsConfig {
@@ -107,9 +108,9 @@ fn derive_from_args_struct(
 
     Ok(quote! {
         impl<'a> pareg::FromArgs<'a> for #ident {
-            fn parse_args<S: pareg::ArgInto<'a>>(args: &mut pareg::ParegRef<'a, S>)
-                -> pareg::Result<Self>
-            {
+            fn parse_args<S: pareg::ArgInto<'a>>(
+                args: &mut pareg::ParegRef<'a, S>
+            ) -> pareg::Result<Self> {
                 #res
             }
         }
@@ -175,14 +176,15 @@ fn declare_fields<'a>(
 fn match_args<'a>(
     res: &mut TokenStream,
     cfg: &FromArgsConfig,
-    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    fields: impl IntoIterator<Item = &'a FieldConfig> + Clone,
     common_unnamed: PositionalMap,
 ) -> Result<()> {
     let mut branches = TokenStream::new();
 
     branches.extend(cfg.start_match.iter().cloned());
 
-    let unnamed = unique_arms(&mut branches, cfg, fields, &common_unnamed)?;
+    let unnamed =
+        unique_arms(&mut branches, cfg, fields.clone(), &common_unnamed)?;
 
     common_arms(&mut branches, cfg, common_unnamed);
 
@@ -194,7 +196,7 @@ fn match_args<'a>(
         });
     }
 
-    catch_arms(&mut branches, cfg, unnamed);
+    catch_arms(&mut branches, cfg, unnamed, fields);
 
     res.extend(quote! {
         while let Some(arg) = args.next_str() {
@@ -289,36 +291,84 @@ fn common_arms(
     }
 }
 
-fn catch_arms(
+fn catch_arms<'a>(
     res: &mut TokenStream,
     cfg: &FromArgsConfig,
     unnamed: TokenStream,
+    fields: impl IntoIterator<Item = &'a FieldConfig> + Clone,
 ) {
     if cfg.positional_guard {
-        res.extend(quote! {
-            v if v.starts_with('-') => return args
+        let els = quote! {
+            return args
                 .err_unknown_argument()
                 .hint(format!(
-                    "Use explicit option to specify {v} as unnamed argument."
+                    "Use explicit option to specify {__v} as unnamed argument."
                 ))
-                .err(),
+                .err();
+        };
+        let assigns = assign_args(cfg, fields.clone(), &quote! { __v }, els);
+        res.extend(quote! {
+            __v if __v.starts_with('-') => #assigns
         });
     }
 
     if unnamed.is_empty() {
+        let els = quote! { return args.err_unknown_argument().err(); };
+        let assigns = assign_args(cfg, fields, &quote! { __v }, els);
         res.extend(quote! {
-            _ => return args.err_unknown_argument().err(),
+            __v => #assigns,
         });
     } else {
+        let els = quote! {
+            return args
+                .err_unknown_argument()
+                .hint("No more unnamed arguments were expected.")
+                .err();
+        };
+        let assigns = assign_args(cfg, fields, &quote! { __v }, els);
         res.extend(quote! {
-            _ => match __unnamed_bits.trailing_ones() {
+            __v => match __unnamed_bits.trailing_ones() {
                 #unnamed
-                _ => return args
-                    .err_unknown_argument()
-                    .hint("No more unnamed arguments were expected.")
-                    .err(),
+                _ => #assigns,
             }
         });
+    }
+}
+
+fn assign_args<'a>(
+    cfg: &FromArgsConfig,
+    fields: impl IntoIterator<Item = &'a FieldConfig>,
+    v: &TokenStream,
+    els: TokenStream,
+) -> TokenStream {
+    let mut dec = TokenStream::new();
+    let mut positional_cnt: u32 = 0;
+    let mut any = false;
+
+    for f in fields {
+        let bit: u64 = 1 << positional_cnt;
+        if f.positional {
+            positional_cnt += 1;
+        }
+        if f.assign_arg(&mut dec, cfg, bit, v) {
+            dec.extend(quote! { else });
+            any = true;
+        }
+    }
+
+    if !any {
+        return quote! { { #els } };
+    }
+
+    quote! {
+        if args.map_res((|| -> pareg::Result<bool> {
+            #dec {
+                return Ok(true)
+            }
+            Ok(false)
+        } )())? {
+            #els
+        }
     }
 }
 
@@ -610,7 +660,8 @@ fn extract_fields<'a>(
             if let Some(r) = c {
                 let name = field.name(false);
                 let msg = format!(
-                    "Expected number of arguments for `{name}` to satisfy `{r}`."
+                    "Expected number of arguments for `{name}` to satisfy \
+                    `{r}`."
                 );
                 res.extend(quote! {
                     if !(#r).contains(&#id.len()) {
@@ -699,15 +750,43 @@ impl FieldConfig {
         }
     }
 
+    pub fn assign_arg(
+        &self,
+        res: &mut TokenStream,
+        cfg: &FromArgsConfig,
+        ubit: u64,
+        v: &TokenStream,
+    ) -> bool {
+        let Some(assign) = &self.assign else {
+            return false;
+        };
+
+        let setter = self.set_field_value(
+            cfg,
+            ubit,
+            true,
+            quote! { pareg::parse_arg(__v)? },
+        );
+
+        for n in &self.names {
+            let prefix = n.value() + assign;
+
+            res.extend(quote! {
+                if let Some(__v) = #v.strip_prefix(#prefix) {
+                    #setter
+                }
+            });
+        }
+
+        true
+    }
+
     pub fn set_field(
         &self,
         cfg: &FromArgsConfig,
         ubit: u64,
         cur: bool,
     ) -> TokenStream {
-        let id = &self.ident;
-
-        let mut res = TokenStream::new();
         let value = if cur {
             if let Some(w) = &self.with {
                 quote! { args.cur_manual(#w)? }
@@ -727,6 +806,20 @@ impl FieldConfig {
                 quote! { args.next_arg()? }
             }
         };
+
+        self.set_field_value(cfg, ubit, cur, value)
+    }
+
+    pub fn set_field_value(
+        &self,
+        cfg: &FromArgsConfig,
+        ubit: u64,
+        cur: bool,
+        value: TokenStream,
+    ) -> TokenStream {
+        let id = &self.ident;
+
+        let mut res = TokenStream::new();
 
         let value = if let Some(a) = &self.action {
             quote! {{
@@ -836,6 +929,7 @@ impl FieldConfig {
         let mut with = None;
         let mut or = vec![];
         let mut bitflags = None;
+        let mut assign = None;
 
         for attr in field.attrs {
             if !attr.path().is_ident("from_args") {
@@ -855,6 +949,7 @@ impl FieldConfig {
                         "rewrite" => no_rewrite = Some(false),
                         "flag" => flag = Some(None),
                         "set" => set = true,
+                        "assign" => assign = Some("=".into()),
                         _ => {
                             return Error::msg_span(
                                 n.span(),
@@ -913,6 +1008,12 @@ impl FieldConfig {
                                 a.right.into_token_stream(),
                             )?);
                         }
+                        "assign" => {
+                            assign = Some(
+                                parse2::<LitStr>(a.right.into_token_stream())?
+                                    .value(),
+                            );
+                        }
                         _ => {
                             return Error::msg_span(
                                 id.span(),
@@ -963,6 +1064,7 @@ impl FieldConfig {
             with,
             or,
             bitflags,
+            assign,
         })
     }
 }

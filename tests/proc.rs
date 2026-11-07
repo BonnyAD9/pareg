@@ -806,3 +806,71 @@ pub fn test_flag_set() {
 
     assert_eq!(parsed.verbosity, 2);
 }
+
+#[test]
+pub fn test_assign() {
+    #[derive(Debug, FromArg, Default, PartialEq, Eq)]
+    enum Enabled {
+        Always,
+        #[default]
+        Auto,
+        Never,
+    }
+
+    #[derive(Debug, FromArgs)]
+    #[from_args(positional_guard)]
+    struct Args {
+        #[from_args("--color", flag = Enabled::Always, default, assign)]
+        color: Enabled,
+        #[from_args("--colour", default, assign)]
+        colour: Enabled,
+    }
+
+    let mut args = Pareg::<String>::new(vec![]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.color, Enabled::Auto);
+
+    let mut args = Pareg::new(vec!["--color"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.color, Enabled::Always);
+
+    let mut args = Pareg::new(vec!["--colour", "never"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.colour, Enabled::Never);
+
+    let mut args = Pareg::new(vec!["--color=never"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.color, Enabled::Never);
+}
+
+#[test]
+pub fn test_assign2() {
+    #[derive(Debug, FromArgs)]
+    #[from_args(positional_guard)]
+    struct Args {
+        #[from_args("-D", assign = "", collect)]
+        defines: Vec<String>,
+        #[from_args(positional, default)]
+        file: String,
+    }
+
+    let mut args = Pareg::new(vec!["hello"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.defines, vec![] as Vec<String>);
+    assert_eq!(parsed.file, "hello");
+
+    let mut args = Pareg::new(vec!["-DNDEBUG"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.defines, vec!["NDEBUG"]);
+
+    let mut args = Pareg::new(vec!["-D", "NDEBUG"]);
+    let parsed: Args = args.next_sub().unwrap();
+
+    assert_eq!(parsed.defines, vec!["NDEBUG"]);
+}
